@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Kindora</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #fff7f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #4b2e2e;
+    }
+
+    p {
+      color: #4b2e2e;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #fffdfc;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border: 1px solid #f3d1c4;
+    }
+
+    .header {
+      background-color: #fbbf24;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      color: #4b2e2e;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .content {
+      padding: 32px;
+    }
+
+    .content p {
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0 0 20px;
+    }
+
+    .credentials {
+      background-color: #fde68a;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .credentials strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #b45309;
+    }
+
+    .button {
+      display: inline-block;
+      background-color: #f97316;
+      color: #ffffff;
+      padding: 14px 28px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .footer {
+      padding: 24px;
+      text-align: center;
+      font-size: 14px;
+      background-color: #fff7f0;
+      color: #6b4c40;
+    }
+
+    @media (max-width: 600px) {
+      .content, .header, .footer {
+        padding: 16px;
+      }
+
+      .button {
+        display: block;
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to Kindora 🌼</h1>
+    </div>
+    <div class="content">
+      <p>Hi {{data.firstName}},</p>
+      <p>We’re so excited to have you as part of the Kindora family — your space for managing daycare and nursery activities with ease and care.</p>
+
+      <div class="credentials">
+        <strong>Email:</strong> <p>{{data.email}}</p>
+        <strong>Password:</strong> <p>{{data.password}}</p>
+      </div>
+
+      <a href="{{data.clientUrl}}/auth/login" target="_blank" class="button">Go to Dashboard →</a>
+
+      <p style="margin-top: 32px;">If you didn’t sign up for Kindora, feel free to disregard this message.</p>
+    </div>
+    <div class="footer">
+      With warmth and joy,<br />
+      — The Kindora Team 💛
+    </div>
+  </div>
+</body>
+</html>

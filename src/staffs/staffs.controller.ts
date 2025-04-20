@@ -1,0 +1,39 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { StaffsService } from './staffs.service';
+import { CreateStaffDto } from './dto/create-staff.dto';
+import { ApiOperation } from '@nestjs/swagger';
+import { ResponseMessage } from 'src/common/decorators';
+import { STAFF_CREATED, STAFFS_FETCHED } from './messages';
+import { ListFilterDTO } from 'src/common/dtos';
+import { JwtAuthGuard } from 'src/auth/guards';
+
+@Controller('staffs')
+@UseGuards(JwtAuthGuard)
+export class StaffsController {
+  constructor(private readonly staffsService: StaffsService) {}
+
+  @Post('create/:id')
+  @ApiOperation({ summary: 'Create a staff' })
+  @ResponseMessage(STAFF_CREATED)
+  async createUser(
+    @Body() createStaffDTO: CreateStaffDto,
+    @Param('id') id: string,
+  ) {
+    return this.staffsService.create(createStaffDTO, id);
+  }
+
+  @Get('')
+  @ApiOperation({ summary: 'Get staffs' })
+  @ResponseMessage(STAFFS_FETCHED)
+  async getUsers(@Query() listFilterDTO: ListFilterDTO) {
+    return this.staffsService.getStaffs(listFilterDTO);
+  }
+}
