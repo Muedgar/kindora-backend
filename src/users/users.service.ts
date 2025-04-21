@@ -86,12 +86,12 @@ export class UserService {
     const savedUser = await this.userRepository.save(user);
 
     const schoolDto = {
-      name: registerUserDTO.name,
-      address: registerUserDTO.address,
-      city: registerUserDTO.city,
-      country: registerUserDTO.country,
-      phoneNumber: registerUserDTO.phoneNumber,
-      enrollmentCapacity: registerUserDTO.enrollmentCapacity,
+      name: registerUserDTO.schoolName,
+      address: registerUserDTO.schoolAddress,
+      city: registerUserDTO.schoolCity,
+      country: registerUserDTO.schoolCountry,
+      phoneNumber: registerUserDTO.schoolPhoneNumber,
+      enrollmentCapacity: registerUserDTO.schoolEnrollmentCapacity,
     };
     const school = await this.schoolService.create(schoolDto, savedUser);
     // update user school

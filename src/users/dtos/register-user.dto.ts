@@ -11,22 +11,22 @@ export class RegisterUserDTO {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  name: string;
+  schoolName: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  address: string;
+  schoolAddress: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  city: string;
+  schoolCity: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  country: string;
+  schoolCountry: string;
 
   @ApiProperty()
   @Matches(/^\+(?:[0-9] ?){6,14}[0-9]$/, {
@@ -35,12 +35,12 @@ export class RegisterUserDTO {
   })
   @IsNotEmpty()
   @IsString()
-  phoneNumber: string;
+  schoolPhoneNumber: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  enrollmentCapacity: string;
+  schoolEnrollmentCapacity: string;
 
   @ApiProperty()
   @IsNotEmpty()
