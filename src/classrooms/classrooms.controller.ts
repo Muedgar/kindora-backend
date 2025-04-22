@@ -14,7 +14,7 @@ import { User } from 'src/users/entities';
 export class ClassroomsController {
   constructor(private readonly classroomsService: ClassroomsService) {}
 
-  @Post('create/:id')
+  @Post('create')
   @ApiOperation({ summary: 'Create a classroom' })
   @ResponseMessage(CLASSROOM_CREATED)
   async createClassroom(

@@ -22,7 +22,7 @@ import { User } from 'src/users/entities';
 export class StaffsController {
   constructor(private readonly staffsService: StaffsService) {}
 
-  @Post('create/:id')
+  @Post('create')
   @ApiOperation({ summary: 'Create a staff' })
   @ResponseMessage(STAFF_CREATED)
   async createUser(

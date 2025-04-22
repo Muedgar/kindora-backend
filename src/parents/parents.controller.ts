@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/common/decorators';
 import { PARENT_CREATED, PARENTS_FETCHED } from './messages';
@@ -22,7 +14,7 @@ import { User } from 'src/users/entities';
 export class ParentsController {
   constructor(private readonly parentsService: ParentsService) {}
 
-  @Post('create/:id')
+  @Post('create')
   @ApiOperation({ summary: 'Create a parent' })
   @ResponseMessage(PARENT_CREATED)
   async createParent(
