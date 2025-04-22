@@ -14,6 +14,8 @@ import { ListFilterDTO } from 'src/common/dtos';
 import { ParentsService } from './parents.service';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { JwtAuthGuard } from 'src/auth/guards';
+import { GetUser } from 'src/auth/decorators';
+import { User } from 'src/users/entities';
 
 @Controller('parents')
 @UseGuards(JwtAuthGuard)
@@ -25,9 +27,10 @@ export class ParentsController {
   @ResponseMessage(PARENT_CREATED)
   async createParent(
     @Body() createParentDTO: CreateParentDto,
-    @Param('id') id: string,
+    @GetUser() user: User,
   ) {
-    return this.parentsService.create(createParentDTO, id);
+    const userId = user.id;
+    return this.parentsService.create(createParentDTO, userId);
   }
 
   @Get('')
