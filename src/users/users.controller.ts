@@ -42,7 +42,7 @@ export class UserController {
     return this.userService.registerUser(registerUserDTO);
   }
 
-  @Post('create/:id')
+  @Post('create')
   @ApiOperation({ summary: 'Create a user' })
   @ResponseMessage(USER_CREATED)
   @UseGuards(JwtAuthGuard)
