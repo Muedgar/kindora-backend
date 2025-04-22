@@ -14,6 +14,8 @@ import { ResponseMessage } from 'src/common/decorators';
 import { STAFF_CREATED, STAFFS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
 import { JwtAuthGuard } from 'src/auth/guards';
+import { GetUser } from 'src/auth/decorators';
+import { User } from 'src/users/entities';
 
 @Controller('staffs')
 @UseGuards(JwtAuthGuard)
@@ -25,9 +27,10 @@ export class StaffsController {
   @ResponseMessage(STAFF_CREATED)
   async createUser(
     @Body() createStaffDTO: CreateStaffDto,
-    @Param('id') id: string,
+    @GetUser() user: User,
   ) {
-    return this.staffsService.create(createStaffDTO, id);
+    const userId = user.id;
+    return this.staffsService.create(createStaffDTO, userId);
   }
 
   @Get('')
