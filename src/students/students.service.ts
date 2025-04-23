@@ -56,6 +56,7 @@ export class StudentsService {
     const options: FindManyOptions<Student> = {
       relations: [
         'parent',
+        'parent.user',
         'parent.children',
         'classroom',
         'classroom.students',
