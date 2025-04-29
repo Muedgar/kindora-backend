@@ -41,14 +41,21 @@ export class EmailProcessor {
   async sendResetPasswordEMail(job: Job<Mail>) {
     const { data } = job;
 
-    await this.mailService.sendMail({
-      ...data,
-      subject: 'Reset Password',
-      template: 'reset-password-email',
-      context: {
-        data: data.data,
-      },
-    });
+    await this.mailService
+      .sendMail({
+        ...data,
+        subject: 'Reset Password',
+        template: 'reset-password-email',
+        context: {
+          data: data.data,
+        },
+      })
+      .then(() => {
+        console.log('email send successfully');
+      })
+      .catch((e) => {
+        console.log(e);
+      });
   }
 
   @Process(PASSWORD_RESET_EMAIL_JOB)

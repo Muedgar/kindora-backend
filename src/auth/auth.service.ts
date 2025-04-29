@@ -182,7 +182,7 @@ export class AuthService {
     const emailData: Mail = {
       to: user.email,
       data: {
-        firstname: user.firstName,
+        firstname: user.userName,
         token,
       },
     };
