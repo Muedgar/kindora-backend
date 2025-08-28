@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { StaffsService } from './staffs.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { ApiOperation } from '@nestjs/swagger';

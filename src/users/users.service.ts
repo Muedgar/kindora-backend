@@ -165,6 +165,16 @@ export class UserService {
     });
   }
 
+  async findOne(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+    if (!user) throw new BadRequestException(USER_NOT_FOUND);
+    return user;
+  }
+
   async updateUser(
     id: string,
     updateUserDTO: UpdateUserDTO,

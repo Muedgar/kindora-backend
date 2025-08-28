@@ -2,7 +2,6 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
-  Generated,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   VersionColumn,
@@ -12,8 +11,7 @@ export abstract class AppBaseEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
   pkid: number;
 
-  @Column({ unique: true })
-  @Generated('uuid')
+  @Column({ type: 'uuid', unique: true, default: () => 'uuid_generate_v4()' })
   id: string;
 
   @VersionColumn({ default: 1 })

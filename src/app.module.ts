@@ -21,6 +21,9 @@ import { ParentsModule } from './parents/parents.module';
 import { ClassroomsModule } from './classrooms/classrooms.module';
 import { StudentsModule } from './students/students.module';
 import { AuthModule } from './auth/auth.module';
+import { ReportsModule } from './reports/reports.module';
+import { CommunicationModule } from './communication/communication.module';
+import { CheckinoutModule } from './checkinout/checkinout.module';
 
 @Module({
   imports: [
@@ -72,6 +75,9 @@ import { AuthModule } from './auth/auth.module';
     ClassroomsModule,
     StudentsModule,
     AuthModule,
+    ReportsModule,
+    CommunicationModule,
+    CheckinoutModule,
   ],
   controllers: [AppController],
   providers: [AppService],
