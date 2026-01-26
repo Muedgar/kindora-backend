@@ -8,6 +8,9 @@ export class GradingLevel extends AppBaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: false, unique: true })
   name: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  description: string;
+
   // GradingLevel created by a user
   @ManyToOne(() => User, { nullable: false })
   createdBy: User;
