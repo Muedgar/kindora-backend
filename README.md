@@ -1,6 +1,6 @@
 <p align="center">
   <img
-    src="https://raw.githubusercontent.com/muedgar/kindora-assets/main/logo.svg"
+    src="https://raw.githubusercontent.com/Muedgar/kindora-assets/main/logo.png"
     width="120"
     alt="Kindora Logo"
   />
