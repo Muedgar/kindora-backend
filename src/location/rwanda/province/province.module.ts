@@ -1,0 +1,14 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DistrictModule } from 'src/location/rwanda/district/district.module';
+import { ProvinceController } from './province.controller';
+import { Province } from './province.entity';
+import { ProvinceService } from './province.service';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Province]), DistrictModule],
+  controllers: [ProvinceController],
+  providers: [ProvinceService],
+  exports: [ProvinceService],
+})
+export class ProvinceModule {}
