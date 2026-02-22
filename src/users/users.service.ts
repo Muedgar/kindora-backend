@@ -75,15 +75,30 @@ export class UserService {
       throw new BadRequestException('Contact Admin');
     }
 
-    const user = this.userRepository.create({
+    // use transactions to create user, school member, school location [one at registration]
+
+    this.userRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        // create user
+            const user = this.userRepository.create({
       userName: registerUserDTO.userName,
+      firstName: registerUserDTO.firstName,
+      lastName: registerUserDTO.lastName,
       email: registerUserDTO.email,
       password: hashedPassword,
       role,
       userType: UserType.ADMIN,
+      isDefaultPassword: false,
+      twoFactorAuthentication: true
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // create 
+      }
+    )
+
+
 
     const schoolDto = {
       name: registerUserDTO.schoolName,

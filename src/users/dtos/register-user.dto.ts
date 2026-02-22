@@ -4,29 +4,42 @@ import {
   IsNotEmpty,
   IsString,
   IsStrongPassword,
+  IsUUID,
   Matches,
 } from 'class-validator';
+import { ECountry } from 'src/schools/enums';
 
 export class RegisterUserDTO {
+  // personal information
+
   @ApiProperty()
   @IsNotEmpty()
-  @IsString()
-  schoolName: string;
+  userName: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  firstName: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  lastName: string;
+
+  @ApiProperty()
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty()
+  @IsStrongPassword()
+  @IsNotEmpty()
+  password: string;
+
+  // school information
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  schoolAddress: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  schoolCity: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  schoolCountry: string;
+  schoolCountry: ECountry;
 
   @ApiProperty()
   @Matches(/^\+(?:[0-9] ?){6,14}[0-9]$/, {
@@ -39,20 +52,14 @@ export class RegisterUserDTO {
 
   @ApiProperty()
   @IsNotEmpty()
+  schoolName: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  enrollmentCapacity: string;
+
+  // school location
   @IsString()
-  schoolEnrollmentCapacity: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  userName: string;
-
-  @ApiProperty()
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @ApiProperty()
-  @IsStrongPassword()
-  @IsNotEmpty()
-  password: string;
+  @IsUUID('4', { message: 'Invalid village ID' })
+  villageId: string;
 }
