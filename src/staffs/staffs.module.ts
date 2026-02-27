@@ -4,9 +4,15 @@ import { StaffsController } from './staffs.controller';
 import { UsersModule } from 'src/users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Staff } from './entities/staff.entity';
+import { StaffBranch } from './entities/staff-branch.entity';
+import { SchoolsModule } from 'src/schools/school.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Staff]), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Staff, StaffBranch]),
+    UsersModule,
+    SchoolsModule,
+  ],
   controllers: [StaffsController],
   providers: [StaffsService],
 })

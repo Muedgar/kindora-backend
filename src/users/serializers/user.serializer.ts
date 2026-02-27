@@ -1,19 +1,25 @@
-import { Exclude, Expose, Type } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import { BaseSerializer } from 'src/common/serializers';
-import { RoleSerializer } from 'src/roles/serializers';
-import { SchoolSerializer } from 'src/schools/serializers';
-import { UserType } from '../enums';
 
+/**
+ * Public shape of a User in API responses.
+ * Minimal by design — no role, no school, no userType.
+ * School memberships are exposed via GET /me/schools (Phase 3).
+ *
+ * `id` is inherited and @Expose()'d by BaseSerializer.
+ */
 export class UserSerializer extends BaseSerializer {
+  @Expose()
+  firstName: string;
+
+  @Expose()
+  lastName: string;
+
   @Expose()
   userName: string;
 
   @Expose()
   email: string;
-
-  @Expose()
-  @Type(() => SchoolSerializer)
-  school: SchoolSerializer;
 
   @Expose()
   status: boolean;
@@ -22,28 +28,24 @@ export class UserSerializer extends BaseSerializer {
   isDefaultPassword: boolean;
 
   @Expose()
-  userType: UserType;
-
-  @Expose()
   twoFactorAuthentication: boolean;
 
   @Expose()
-  @Type(() => RoleSerializer)
-  role: RoleSerializer[];
+  emailVerified: boolean;
 
-  @Exclude()
-  version: number;
+  /** Override base @Exclude to surface createdAt for audit display. */
+  @Expose()
+  declare createdAt: Date;
 
   @Exclude()
   password: string;
 
   @Exclude()
-  emailVerified: boolean;
+  version: number;
 
   @Exclude()
   emailVerificationKey: string;
 
   @Exclude()
   emailVerificationExpiry: Date;
-  firstName: any;
 }

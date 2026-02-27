@@ -54,10 +54,6 @@ export class RegisterUserDTO {
   @IsNotEmpty()
   schoolName: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  enrollmentCapacity: string;
-
   // school location
   @IsString()
   @IsUUID('4', { message: 'Invalid village ID' })

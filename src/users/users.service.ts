@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,39 +9,53 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { ListFilterDTO } from 'src/common/dtos';
 import { FilterResponse, Mail } from 'src/common/interfaces';
-
 import { ROLE_IS_DEACTIVATED } from 'src/roles/messages';
 import { RoleService } from 'src/roles/roles.service';
 import { FindManyOptions, Repository } from 'typeorm';
 import { CreateUserDTO, RegisterUserDTO, UpdateUserDTO } from './dtos';
 import { User } from './entities/user.entity';
 import {
+  CANNOT_DELETE_SUPER_ADMIN,
+  CONTACT_ADMIN,
   EMAIL_EXISTS,
+  SCHOOL_ALREADY_EXISTS,
   TWO_FA_ALREADY_DISABLED,
   TWO_FA_ALREADY_ENABLED,
   USER_ALREADY_ACTIVATED,
   USER_ALREADY_DEACTIVATED,
+  USER_EXISTS_ALREADY,
   USER_NOT_FOUND,
+  USER_NOT_IN_SCHOOL,
 } from './messages';
 import { UserSerializer } from './serializers';
 import { ListFilterService } from 'src/common/services';
 import { generateRandomPassword } from 'src/utils';
-import { UserType } from './enums';
 import { EmailService } from 'src/common/services/';
 import { REGISTER_EMAIL_JOB } from 'src/common/constants';
 import { plainToInstance } from 'class-transformer';
 import { SchoolService } from 'src/schools/school.service';
+import { School } from 'src/schools/entities/school.entity';
+import { SchoolMember } from 'src/schools/entities/school-member.entity';
+import { VillageService } from 'src/location/rwanda/village/village.service';
+import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
+import { SchoolMemberRole } from 'src/schools/entities/school-member-role.entity';
+import { ESchoolMemberStatus } from 'src/schools/enums';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(SchoolMember)
+    private schoolMemberRepository: Repository<SchoolMember>,
+    @InjectRepository(SchoolMemberRole)
+    private schoolMemberRoleRepository: Repository<SchoolMemberRole>,
     private roleService: RoleService,
     private emailService: EmailService,
     private schoolService: SchoolService,
+    private villageService: VillageService,
   ) {}
 
-  async doesUserEmailExists(email: string) {
+  async doesUserEmailExists(email: string): Promise<void> {
     const userWithEmail = await this.userRepository.findOne({
       where: { email },
     });
@@ -66,111 +77,203 @@ export class UserService {
     registerUserDTO: RegisterUserDTO,
   ): Promise<UserSerializer> {
     await this.doesUserEmailExists(registerUserDTO.email);
+
     const password = registerUserDTO.password;
-    const hashedPassword = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const role = await this.roleService.getRoleBySlug('super-admin');
+    if (!role) throw new BadRequestException(CONTACT_ADMIN);
 
-    if (!role) {
-      throw new BadRequestException('Contact Admin');
-    }
+    const returnedUser = await this.userRepository.manager.transaction(
+      async (tx) => {
+        // 1) Create user (identity only — no role or userType on User entity)
+        const user = tx.create(User, {
+          userName: registerUserDTO.userName,
+          firstName: registerUserDTO.firstName,
+          lastName: registerUserDTO.lastName,
+          email: registerUserDTO.email,
+          password: hashedPassword,
+          isDefaultPassword: false,
+          twoFactorAuthentication: true,
+        });
 
-    // use transactions to create user, school member, school location [one at registration]
+        const savedUser = await tx.save(user);
 
-    this.userRepository.manager.transaction(
-      async (transactionalEntityManager) => {
-        // create user
-            const user = this.userRepository.create({
-      userName: registerUserDTO.userName,
-      firstName: registerUserDTO.firstName,
-      lastName: registerUserDTO.lastName,
-      email: registerUserDTO.email,
-      password: hashedPassword,
-      role,
-      userType: UserType.ADMIN,
-      isDefaultPassword: false,
-      twoFactorAuthentication: true
-    });
+        // 2) Create school
+        const school = tx.create(School, {
+          name: registerUserDTO.schoolName,
+          countries: [registerUserDTO.schoolCountry],
+          phoneNumber: registerUserDTO.schoolPhoneNumber,
+          createdBy: savedUser,
+        });
 
-    const savedUser = await this.userRepository.save(user);
+        const savedSchool = await tx.save(school);
 
-    // create 
-      }
-    )
+        // 3) Create school member (uniqueness guard)
+        const existingSchoolMember = await tx.findOne(SchoolMember, {
+          where: {
+            member: { id: savedUser.id },
+            school: { id: savedSchool.id },
+          },
+        });
 
+        if (existingSchoolMember) {
+          throw new BadRequestException(USER_EXISTS_ALREADY);
+        }
 
+        const savedMember = await tx.save(
+          tx.create(SchoolMember, {
+            school: savedSchool,
+            member: savedUser,
+            status: ESchoolMemberStatus.ACTIVE,
+            isDefault: true,
+          }),
+        );
 
-    const schoolDto = {
-      name: registerUserDTO.schoolName,
-      address: registerUserDTO.schoolAddress,
-      city: registerUserDTO.schoolCity,
-      country: registerUserDTO.schoolCountry,
-      phoneNumber: registerUserDTO.schoolPhoneNumber,
-      enrollmentCapacity: registerUserDTO.schoolEnrollmentCapacity,
-    };
-    const school = await this.schoolService.create(schoolDto, savedUser);
-    // update user school
-    savedUser.school = school;
-    // save user again
-    const finalUser = await this.userRepository.save(savedUser);
-    // send email
+        // Create SchoolMemberRole linking the super-admin to their role.
+        await tx.save(
+          tx.create(SchoolMemberRole, {
+            schoolMember: savedMember,
+            role,
+          }),
+        );
+
+        // 4) Create school branch
+        const village = await this.villageService.getVillageById(
+          registerUserDTO.villageId,
+        );
+
+        const existingLocationsCount = await tx.count(SchoolBranch, {
+          where: {
+            rwandaVillage: { id: village.id },
+            school: { id: savedSchool.id },
+          },
+        });
+
+        const code = existingLocationsCount + 1;
+
+        const existingSchoolBranch = await tx.findOne(SchoolBranch, {
+          where: {
+            rwandaVillage: { id: village.id },
+            school: { id: savedSchool.id },
+            code,
+          },
+        });
+
+        if (existingSchoolBranch) {
+          throw new BadRequestException(SCHOOL_ALREADY_EXISTS);
+        }
+
+        await tx.save(
+          tx.create(SchoolBranch, {
+            name: registerUserDTO.schoolName,
+            country: registerUserDTO.schoolCountry,
+            rwandaVillage: village,
+            school: savedSchool,
+            code,
+            isMainBranch: true,
+          }),
+        );
+
+        return savedUser;
+      },
+    );
+
+    // 5) Send welcome email (after commit)
+    // TODO (Phase 7): Replace with invite-token email — no plaintext password.
     const emailData: Mail = {
-      to: finalUser.email,
+      to: registerUserDTO.email,
       data: {
-        firstName: finalUser.userName,
-        email: finalUser.email,
-        password,
+        firstName: registerUserDTO.firstName,
+        email: registerUserDTO.email,
       },
     };
 
     await this.emailService.sendEmail(emailData, REGISTER_EMAIL_JOB);
 
-    return plainToInstance(UserSerializer, savedUser, {
+    return plainToInstance(UserSerializer, returnedUser, {
       excludeExtraneousValues: true,
     });
   }
 
+  /**
+   * Creates a new user in the given school atomically.
+   * Caller must supply the resolved school (from SchoolContextGuard) and the
+   * requesting User entity so the membership can record who sent the invite.
+   *
+   * Rolls back entirely if any step fails — no partial writes.
+   */
   async createUser(
     createUserDTO: CreateUserDTO,
-    requestUser: string,
+    school: School,
+    requestingUser: User,
   ): Promise<UserSerializer> {
     await this.doesUserEmailExists(createUserDTO.email);
-    const password = generateRandomPassword(10);
-    const hashedPassword = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
+    const role = await this.validateRole(createUserDTO.roleId);
 
-    const role = await this.validateRole(createUserDTO.role);
+    const hashedPassword = bcrypt.hashSync(
+      generateRandomPassword(10),
+      bcrypt.genSaltSync(10),
+    );
 
-    const userRequesting = await this.userRepository.findOne({
-      where: {
-        id: requestUser,
+    const savedUser = await this.userRepository.manager.transaction(
+      async (tx) => {
+        // 1) User identity
+        const user = tx.create(User, {
+          userName: createUserDTO.userName,
+          firstName: createUserDTO.firstName,
+          lastName: createUserDTO.lastName,
+          email: createUserDTO.email,
+          password: hashedPassword,
+          status: true,
+          emailVerified: true,
+        });
+
+        const createdUser = await tx.save(user);
+
+        // 2) Resolve optional default branch (must belong to the same school)
+        let defaultBranch: SchoolBranch | undefined = undefined;
+
+        if (createUserDTO.branchIds?.length) {
+          const selectedBranch = await this.schoolService.getBranchById(
+            createUserDTO.branchIds[0],
+          );
+          if (!selectedBranch || selectedBranch.school.id !== school.id) {
+            throw new BadRequestException(
+              'Invalid branch assignment for selected school.',
+            );
+          }
+          defaultBranch = selectedBranch;
+        }
+
+        // 3) School membership
+        const membership = tx.create(SchoolMember, {
+          member: createdUser,
+          school,
+          status: ESchoolMemberStatus.ACTIVE,
+          isDefault: true,
+          acceptedAt: new Date(),
+          invitedBy: requestingUser,
+          defaultBranch,
+        });
+
+        const savedMembership = await tx.save(membership);
+
+        // 4) Role assignment
+        const membershipRole = tx.create(SchoolMemberRole, {
+          schoolMember: savedMembership,
+          role,
+        });
+        await tx.save(membershipRole);
+
+        return createdUser;
       },
-    });
+    );
 
-    if (!userRequesting) throw new BadRequestException(USER_NOT_FOUND);
-
-    const school = await this.schoolService.getByUser(requestUser);
-
-    if (!school) throw new BadRequestException('School not found');
-
-    const user = this.userRepository.create({
-      userName: createUserDTO.userName,
-      email: createUserDTO.email,
-      password: hashedPassword,
-      role,
-      school: school,
-      userType: createUserDTO.userType,
-    });
-
-    const savedUser = await this.userRepository.save(user);
-    // send email
-    // send email
+    // TODO (Phase 7): Send invite-token email instead of plaintext credentials.
     const emailData: Mail = {
       to: savedUser.email,
-      data: {
-        firstName: savedUser.userName,
-        email: savedUser.email,
-        password,
-      },
+      data: { firstName: savedUser.firstName, email: savedUser.email },
     };
 
     await this.emailService.sendEmail(emailData, REGISTER_EMAIL_JOB);
@@ -181,68 +284,79 @@ export class UserService {
   }
 
   async findOne(userId: string): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: {
-        id: userId,
-      },
-    });
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new BadRequestException(USER_NOT_FOUND);
     return user;
   }
 
+  /**
+   * Updates a user's profile fields.
+   * The caller must supply the current school ID so the service can verify
+   * that the user being updated is a member of that school.
+   */
   async updateUser(
     id: string,
     updateUserDTO: UpdateUserDTO,
+    schoolId: string,
   ): Promise<UserSerializer> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: ['role', 'school'],
-    });
+    await this.verifyUserInSchool(id, schoolId);
+
+    const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
       throw new NotFoundException(USER_NOT_FOUND);
     }
 
-    if (updateUserDTO.userName) {
-      user.userName = updateUserDTO.userName;
-    }
-
-    if (updateUserDTO.userType) {
-      user.userType = updateUserDTO.userType;
-    }
-
-    if (updateUserDTO.role) {
-      const role = await this.validateRole(updateUserDTO.role);
-      user.role = role;
-    }
+    if (updateUserDTO.firstName) user.firstName = updateUserDTO.firstName;
+    if (updateUserDTO.lastName) user.lastName = updateUserDTO.lastName;
+    if (updateUserDTO.userName) user.userName = updateUserDTO.userName;
 
     const updatedUser = await this.userRepository.save(user);
+
     return plainToInstance(UserSerializer, updatedUser, {
       excludeExtraneousValues: true,
     });
   }
 
+  /**
+   * Throws ForbiddenException if the target user is not a member of the
+   * given school. Used by update/delete to enforce school scoping.
+   */
+  private async verifyUserInSchool(
+    userId: string,
+    schoolId: string,
+  ): Promise<void> {
+    const membership = await this.schoolMemberRepository.findOne({
+      where: { member: { id: userId }, school: { id: schoolId } },
+    });
+    if (!membership) {
+      throw new ForbiddenException(USER_NOT_IN_SCHOOL);
+    }
+  }
+
+  /**
+   * Returns a paginated list of users scoped to the given school.
+   * Only users who have at least one SchoolMember record in this school
+   * will be returned — prevents cross-school data leakage.
+   */
   async getUsers(
     filters: ListFilterDTO,
+    schoolId: string,
   ): Promise<FilterResponse<UserSerializer>> {
     const listFilterService = new ListFilterService(
       this.userRepository,
       UserSerializer,
     );
-    const searchFields = ['userName', 'email'];
-
+    const searchFields = ['firstName', 'lastName', 'userName', 'email'];
     const options: FindManyOptions<User> = {
-      relations: ['role', 'role.permissions'],
+      where: { schools: { school: { id: schoolId } } },
     };
 
     return listFilterService.filter({ filters, searchFields, options });
   }
 
   async getUserByEmail(email: string): Promise<UserSerializer> {
-    const user = await this.userRepository.findOne({
-      where: { email },
-      relations: ['role', 'role.permissions', 'school'],
-    });
+    const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       throw new NotFoundException(USER_NOT_FOUND);
     }
@@ -252,11 +366,7 @@ export class UserService {
   }
 
   async getUser(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: ['role', 'school'],
-    });
-
+    const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException(USER_NOT_FOUND);
     }
@@ -328,20 +438,33 @@ export class UserService {
     newPassword: string,
   ): Promise<UserSerializer> {
     const user = await this.getUser(id);
-    const hashedPassword = bcrypt.hashSync(newPassword, bcrypt.genSaltSync(10));
-    user.password = hashedPassword;
-
+    user.password = bcrypt.hashSync(newPassword, bcrypt.genSaltSync(10));
     const savedUser = await this.userRepository.save(user);
-    return new UserSerializer(savedUser);
+    return plainToInstance(UserSerializer, savedUser, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async deleteUser(id: string): Promise<void> {
+  /**
+   * Deletes a user, with two guards:
+   * 1. The user must be a member of the caller's school (school scoping).
+   * 2. A user with the 'super-admin' role cannot be deleted via this endpoint.
+   *    Super-admin removal requires an elevated flow (Phase 5+).
+   */
+  async deleteUser(id: string, schoolId: string): Promise<void> {
+    const membership = await this.schoolMemberRepository.findOne({
+      where: { member: { id }, school: { id: schoolId } },
+      relations: ['roles', 'roles.role'],
+    });
+
+    if (!membership) throw new ForbiddenException(USER_NOT_IN_SCHOOL);
+
+    const isSuperAdmin = membership.roles.some(
+      (smr) => smr.role.slug === 'super-admin',
+    );
+    if (isSuperAdmin) throw new ForbiddenException(CANNOT_DELETE_SUPER_ADMIN);
+
     const user = await this.getUser(id);
-
-    if (user.userType === UserType.ADMIN) {
-      throw new BadRequestException('You can not delete a system user.');
-    }
-
     await this.userRepository.remove(user);
   }
 }

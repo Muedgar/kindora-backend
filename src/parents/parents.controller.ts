@@ -1,12 +1,20 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/common/decorators';
 import { PARENT_CREATED, PARENTS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
 import { ParentsService } from './parents.service';
 import { CreateParentDto } from './dto/create-parent.dto';
-import { JwtAuthGuard } from 'src/auth/guards';
-import { GetUser } from 'src/auth/decorators';
+import { JwtAuthGuard, PermissionGuard, SchoolContextGuard } from 'src/auth/guards';
+import { GetSchoolContext, GetUser, RequirePermission } from 'src/auth/decorators';
+import { SchoolContext } from 'src/auth/interfaces';
 import { User } from 'src/users/entities';
 
 @Controller('parents')
@@ -17,18 +25,25 @@ export class ParentsController {
   @Post('create')
   @ApiOperation({ summary: 'Create a parent' })
   @ResponseMessage(PARENT_CREATED)
+  @UseGuards(SchoolContextGuard, PermissionGuard)
+  @RequirePermission('manage:users')
   async createParent(
     @Body() createParentDTO: CreateParentDto,
-    @GetUser() user: User,
+    @GetUser() requestingUser: User,
+    @GetSchoolContext() ctx: SchoolContext,
   ) {
-    const userId = user.id;
-    return this.parentsService.create(createParentDTO, userId);
+    return this.parentsService.create(createParentDTO, ctx.school, requestingUser);
   }
 
   @Get('')
   @ApiOperation({ summary: 'Get parents' })
   @ResponseMessage(PARENTS_FETCHED)
-  async getParents(@Query() listFilterDTO: ListFilterDTO) {
-    return this.parentsService.getParents(listFilterDTO);
+  @UseGuards(SchoolContextGuard, PermissionGuard)
+  @RequirePermission('read:users')
+  async getParents(
+    @Query() listFilterDTO: ListFilterDTO,
+    @GetSchoolContext() ctx: SchoolContext,
+  ) {
+    return this.parentsService.getParents(listFilterDTO, ctx.school.id);
   }
 }

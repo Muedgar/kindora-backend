@@ -1,26 +1,26 @@
 import { AppBaseEntity } from 'src/common/entities';
 import { User } from 'src/users/entities';
-import { Column, Entity, JoinColumn, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ECountry } from '../enums';
 import { SchoolMember } from './school-member.entity';
-import { SchoolLocation } from './rwanda/school-location.entity';
-
-/*
-School or program details 
-(school or program name, 
-program type (preschool, after school), 
-phone number, 
-enrollment capacity, 
-country, 
-state / region)
-*/
+import { SchoolBranch } from './rwanda/school-branch.entity';
 
 @Entity('schools')
 export class School extends AppBaseEntity {
   @Column({ type: 'varchar', length: 200, nullable: false })
   name: string;
 
-  @Column({ type: 'enum', nullable: false })
+  /**
+   * Postgres enum array — a school may operate across multiple countries.
+   * Rwanda is the default for Kindora v1.
+   */
+  @Column({
+    type: 'enum',
+    enum: ECountry,
+    array: true,
+    nullable: false,
+    default: [ECountry.RWANDA],
+  })
   countries: ECountry[];
 
   @Column({ type: 'varchar', length: 200, nullable: false })
@@ -29,13 +29,13 @@ export class School extends AppBaseEntity {
   @Column({ type: 'varchar', length: 200, nullable: true })
   enrollmentCapacity: string;
 
-  @OneToOne(() => User, { nullable: false })
-  @JoinColumn()
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: 'created_by_id' })
   createdBy: User;
 
   @OneToMany(() => SchoolMember, (schoolMember) => schoolMember.school)
   members: SchoolMember[];
 
-  @OneToMany(() => SchoolLocation, (schoolLocation) => schoolLocation.school)
-  locations: SchoolLocation[];
+  @OneToMany(() => SchoolBranch, (schoolBranch) => schoolBranch.school)
+  branches: SchoolBranch[];
 }

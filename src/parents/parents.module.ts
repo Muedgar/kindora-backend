@@ -4,9 +4,10 @@ import { ParentsController } from './parents.controller';
 import { UsersModule } from 'src/users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Parent } from './entities/parent.entity';
+import { SchoolsModule } from 'src/schools/school.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Parent]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Parent]), UsersModule, SchoolsModule],
   controllers: [ParentsController],
   providers: [ParentsService],
   exports: [ParentsService],

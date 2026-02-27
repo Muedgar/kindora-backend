@@ -26,8 +26,9 @@ import {
   USER_FETCHED,
 } from './messages';
 import { UserService } from './users.service';
-import { JwtAuthGuard } from 'src/auth/guards';
-import { GetUser } from 'src/auth/decorators';
+import { JwtAuthGuard, PermissionGuard, SchoolContextGuard } from 'src/auth/guards';
+import { GetSchoolContext, GetUser, RequirePermission } from 'src/auth/decorators';
+import { SchoolContext } from 'src/auth/interfaces';
 import { User } from './entities';
 
 @Controller('users')
@@ -35,6 +36,11 @@ import { User } from './entities';
 export class UserController {
   constructor(private userService: UserService) {}
 
+  /**
+   * POST /users/register
+   * Bootstrap endpoint — creates the very first super-admin + school.
+   * No auth required (called before any school exists).
+   */
   @Post('register')
   @ApiOperation({ summary: 'Register a super user' })
   @ResponseMessage(USER_CREATED)
@@ -42,43 +48,69 @@ export class UserController {
     return this.userService.registerUser(registerUserDTO);
   }
 
+  /**
+   * POST /users/create
+   * Creates a new user atomically (User + SchoolMember + SchoolMemberRole).
+   * Requires a valid school context — the new user is enrolled in the
+   * school identified by X-School-Id.
+   */
   @Post('create')
-  @ApiOperation({ summary: 'Create a user' })
+  @ApiOperation({ summary: 'Create a user in the current school' })
   @ResponseMessage(USER_CREATED)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
+  @RequirePermission('manage:users')
   async createUser(
     @Body() createUserDTO: CreateUserDTO,
-    @GetUser() user: User,
+    @GetUser() requestingUser: User,
+    @GetSchoolContext() ctx: SchoolContext,
   ) {
-    const userId = user.id;
-    return this.userService.createUser(createUserDTO, userId);
+    return this.userService.createUser(createUserDTO, ctx.school, requestingUser);
   }
 
+  /**
+   * GET /users
+   * Returns a paginated list of users scoped to the current school.
+   * Requires X-School-Id — prevents cross-school data leakage.
+   */
   @Get('')
-  @ApiOperation({ summary: 'Get users' })
+  @ApiOperation({ summary: 'Get users in the current school' })
   @ResponseMessage(USERS_FETCHED)
-  @UseGuards(JwtAuthGuard)
-  async getUsers(@Query() listFilterDTO: ListFilterDTO) {
-    return this.userService.getUsers(listFilterDTO);
+  @UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
+  @RequirePermission('read:users')
+  async getUsers(
+    @Query() listFilterDTO: ListFilterDTO,
+    @GetSchoolContext() ctx: SchoolContext,
+  ) {
+    return this.userService.getUsers(listFilterDTO, ctx.school.id);
   }
 
+  /**
+   * GET /users/:id
+   * Returns a single user. (No school filter — used for profile lookups.)
+   */
   @Get(':id')
   @ApiOperation({ summary: 'Get user by id' })
   @ResponseMessage(USER_FETCHED)
   @UseGuards(JwtAuthGuard)
   async getUser(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
-    const user = await this.userService.getUser(id);
-    return user;
+    return this.userService.getUser(id);
   }
 
+  /**
+   * PATCH /users/:id
+   * Updates a user's profile. Verifies the user belongs to the
+   * caller's school before applying changes.
+   */
   @Patch(':id')
   @ApiOperation({ summary: 'Update a user' })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
+  @RequirePermission('manage:users')
   async updateUser(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateUserDTO: UpdateUserDTO,
+    @GetSchoolContext() ctx: SchoolContext,
   ) {
-    return this.userService.updateUser(id, updateUserDTO);
+    return this.userService.updateUser(id, updateUserDTO, ctx.school.id);
   }
 
   @Patch(':id/activate')
@@ -132,13 +164,21 @@ export class UserController {
     return this.userService.changePassword(id, changePasswordDto.password);
   }
 
+  /**
+   * DELETE /users/:id
+   * Deletes a user. Guards:
+   * - User must be a member of the caller's school (school scoping).
+   * - Super-admin users cannot be deleted via this endpoint.
+   */
   @Delete(':id')
   @ApiOperation({ summary: 'Delete user' })
   @ResponseMessage(USER_DELETED)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
+  @RequirePermission('manage:users')
   async deleteUser(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @GetSchoolContext() ctx: SchoolContext,
   ) {
-    return this.userService.deleteUser(id);
+    return this.userService.deleteUser(id, ctx.school.id);
   }
 }

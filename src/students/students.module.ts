@@ -1,18 +1,28 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { StudentsService } from './students.service';
 import { StudentsController } from './students.controller';
 import { ClassroomsModule } from 'src/classrooms/classrooms.module';
-import { ParentsModule } from 'src/parents/parents.module';
 import { Student } from './entities/student.entity';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { StudentGuardian } from './entities/student-guardian.entity';
+import { SchoolsModule } from 'src/schools/school.module';
+import { BranchContextGuard, PermissionGuard } from 'src/auth/guards';
+import { SchoolMember } from 'src/schools/entities/school-member.entity';
+import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Student]),
+    TypeOrmModule.forFeature([
+      Student,
+      StudentGuardian,
+      SchoolMember,
+      SchoolBranch,
+    ]),
     ClassroomsModule,
-    ParentsModule,
+    SchoolsModule,
   ],
   controllers: [StudentsController],
-  providers: [StudentsService],
+  providers: [StudentsService, BranchContextGuard, PermissionGuard],
+  exports: [StudentsService, TypeOrmModule],
 })
 export class StudentsModule {}

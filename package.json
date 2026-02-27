@@ -18,12 +18,16 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "npm run build && ts-node ./node_modules/typeorm/cli",
-    "migration:run": "npm run typeorm migration:run -- -d ./src/config/db/db.config.ts",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
+    "migration:run": "npm run typeorm -- -d ./src/config/db/db.config.ts migration:run",
     "migration:generate": "npm run typeorm -- -d ./src/config/db/db.config.ts migration:generate ./src/migrations/$npm_config_name",
     "migration:revert": "npm run typeorm -- -d ./src/config/db/db.config.ts migration:revert",
     "seed:permission": "ts-node -r tsconfig-paths/register src/config/seeds/seed.ts",
-    "seed:role": "ts-node -r tsconfig-paths/register src/config/seeds/seed-role.ts"
+    "seed:role": "ts-node -r tsconfig-paths/register src/config/seeds/seed-role.ts",
+    "seed:rwanda": "ts-node -r tsconfig-paths/register src/config/seeds/seed-rwanda.ts",
+    "db:reset": "ts-node -r tsconfig-paths/register src/config/db/reset-db.ts",
+    "seed:all": "ts-node -r tsconfig-paths/register src/config/seeds/seed-all.ts",
+    "db:fresh": "npm run db:reset && npm run migration:run && npm run seed:rwanda && npm run seed:all"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",

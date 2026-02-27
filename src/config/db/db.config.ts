@@ -3,6 +3,14 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 
 dotenvConfig({ path: '.env' });
 
+const isTsRuntime = __filename.endsWith('.ts');
+const entitiesPath = isTsRuntime
+  ? ['src/**/*.entity.ts']
+  : ['dist/**/*.entity.js'];
+const migrationsPath = isTsRuntime
+  ? ['src/migrations/*.ts']
+  : ['dist/migrations/*.js'];
+
 export const dataSourceOptions = {
   type: 'postgres',
   host: process.env.POSTGRES_HOST,
@@ -10,8 +18,8 @@ export const dataSourceOptions = {
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DB,
-  entities: ['dist/**/*.entity{.ts,.js}'],
-  migrations: ['dist/migrations/*{.ts,.js}'],
+  entities: entitiesPath,
+  migrations: migrationsPath,
   autoLoadEntities: true,
   synchronize: false,
   logging: false,

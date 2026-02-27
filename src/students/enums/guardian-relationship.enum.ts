@@ -1,0 +1,9 @@
+export enum EGuardianRelationship {
+  MOTHER = 'MOTHER',
+  FATHER = 'FATHER',
+  GRANDPARENT = 'GRANDPARENT',
+  AUNT_UNCLE = 'AUNT_UNCLE',
+  SIBLING = 'SIBLING',
+  LEGAL_GUARDIAN = 'LEGAL_GUARDIAN',
+  OTHER = 'OTHER',
+}
