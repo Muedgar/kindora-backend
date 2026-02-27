@@ -42,6 +42,7 @@ import { StaffBranch } from 'src/staffs/entities/staff-branch.entity';
 import { ESchoolMemberStatus } from 'src/schools/enums';
 import { ECountry } from 'src/schools/enums';
 import { EGuardianRelationship } from 'src/students/enums/guardian-relationship.enum';
+import { ConfigService } from '@nestjs/config';
 
 // ── Permission slug constants (action:resource) ───────────────────────────
 const P = {
@@ -101,7 +102,6 @@ const ROLE_PERMISSIONS: Record<string, PermSlug[]> = {
 };
 
 // ── Test user credentials ─────────────────────────────────────────────────
-const SEED_PASSWORD_PLAIN = 'Kindora@2025';
 const SALT_ROUNDS = 10;
 @Injectable()
 export class KindoraSeederService {
@@ -123,8 +123,18 @@ export class KindoraSeederService {
     @InjectRepository(Staff)     private staffRepo: Repository<Staff>,
     @InjectRepository(StaffBranch)
     private staffBranchRepo: Repository<StaffBranch>,
+    private readonly configService: ConfigService,
   ) {}
 
+private getSeedPlainPassword(): string {
+  const pw = this.configService.get<string>('SEED_PASSWORD_PLAIN');
+
+  if (!pw) {
+    throw new Error('SEED_PASSWORD_PLAIN is missing in .env');
+  }
+
+  return pw;
+}
   // ═══════════════════════════════════════════════════════════════════════
   //  Public entry point
   // ═══════════════════════════════════════════════════════════════════════
@@ -132,7 +142,7 @@ export class KindoraSeederService {
   async seed(): Promise<void> {
     this.logger.log('🌱  Starting Kindora seed…');
 
-    const passwordHash = await bcrypt.hash(SEED_PASSWORD_PLAIN, SALT_ROUNDS);
+    const passwordHash = await bcrypt.hash(this.getSeedPlainPassword(), SALT_ROUNDS);
 
     const permMap   = await this.seedPermissions();
     const roleMap   = await this.seedRoles(permMap);
@@ -582,7 +592,7 @@ export class KindoraSeederService {
     const pad = (s: string) => s.padEnd(34);
     console.log('┌─────────────────────────────────────────────────────────────┐');
     console.log('│                  SEED CREDENTIALS                          │');
-    console.log('│  All accounts use password:  ' + SEED_PASSWORD_PLAIN.padEnd(32) + '│');
+    console.log('│  All accounts use password:  ' + this.getSeedPlainPassword().padEnd(32) + '│');
     console.log('├─────────────────────────────────────────────────────────────┤');
     console.log(`│  ${pad('super@kindora.rw')}  SUPER_ADMIN  (both schools) │`);
     console.log(`│  ${pad('admin.kgl@kindora.rw')}  SCHOOL_ADMIN (Kigali)       │`);
