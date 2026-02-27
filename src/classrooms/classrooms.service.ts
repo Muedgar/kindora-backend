@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, Repository } from 'typeorm';
 import { UserService } from 'src/users/users.service';
+import { SchoolService } from 'src/schools/school.service';
 import { plainToInstance } from 'class-transformer';
 import { ListFilterDTO } from 'src/common/dtos';
 import { FilterResponse } from 'src/common/interfaces';
@@ -17,6 +18,7 @@ export class ClassroomsService {
     @InjectRepository(Classroom)
     private classroomRepository: Repository<Classroom>,
     private userService: UserService,
+    private schoolService: SchoolService,
   ) {}
 
   async create(
@@ -24,6 +26,11 @@ export class ClassroomsService {
     requestUser: string,
   ): Promise<ClassroomSerializer> {
     const userFound = await this.userService.getUser(requestUser);
+    const branch = await this.schoolService.getBranchById(createClassroomDto.branchId);
+
+    if (!branch) {
+      throw new BadRequestException('Branch not found');
+    }
 
     const foundClassroom = await this.classroomRepository.findOne({
       where: {
@@ -34,9 +41,11 @@ export class ClassroomsService {
     if (foundClassroom) throw new BadRequestException(CLASSROOM_EXISTS);
 
     const classroom = this.classroomRepository.create({
-      ...createClassroomDto,
+      name: createClassroomDto.name,
+      ageGroup: createClassroomDto.ageGroup,
       capacity: Number(createClassroomDto.capacity),
       createdBy: userFound,
+      branch,
     });
     const savedClassroom = await this.classroomRepository.save(classroom);
     return plainToInstance(ClassroomSerializer, savedClassroom, {
@@ -46,6 +55,7 @@ export class ClassroomsService {
 
   async getClassrooms(
     filters: ListFilterDTO,
+    branchId?: string,
   ): Promise<FilterResponse<ClassroomSerializer>> {
     const listFilterService = new ListFilterService(
       this.classroomRepository,
@@ -54,7 +64,8 @@ export class ClassroomsService {
     const searchFields = ['name', 'ageGroup', 'capacity'];
 
     const options: FindManyOptions<Classroom> = {
-      relations: ['createdBy', 'students'],
+      where: branchId ? { branch: { id: branchId } } : {},
+      relations: ['createdBy', 'students', 'branch', 'branch.school'],
     };
 
     return listFilterService.filter({
@@ -69,7 +80,7 @@ export class ClassroomsService {
       where: {
         id,
       },
-      relations: ['createdBy', 'students'],
+      relations: ['createdBy', 'students', 'branch', 'branch.school'],
     });
 
     if (!classroom) {

@@ -11,11 +11,11 @@ export class Category extends AppBaseEntity {
   @Column({ type: 'varchar', length: 100 })
   description: string;
 
-  // Templates can include multiple activities
-  @ManyToMany(() => Activity, (activity) => activity.templates)
+  // Categories can include multiple activities
+  @ManyToMany(() => Activity, (activity) => activity.categories)
   @JoinTable({
-    name: 'template_activities',
-    joinColumn: { name: 'template_id', referencedColumnName: 'id' },
+    name: 'category_activities',
+    joinColumn: { name: 'category_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'activity_id', referencedColumnName: 'id' },
   })
   activities: Activity[];

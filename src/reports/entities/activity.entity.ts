@@ -3,6 +3,7 @@ import { Column, Entity, ManyToMany, ManyToOne, JoinTable } from 'typeorm';
 import { ActivitiesTemplate } from './activity-template.entity';
 import { User } from 'src/users/entities';
 import { GradingLevel } from './grading-level.entity';
+import { Category } from './category.entity';
 
 @Entity('activities')
 export class Activity extends AppBaseEntity {
@@ -15,6 +16,9 @@ export class Activity extends AppBaseEntity {
   // Many activities can belong to many templates
   @ManyToMany(() => ActivitiesTemplate, (template) => template.activities)
   templates: ActivitiesTemplate[];
+
+  @ManyToMany(() => Category, (category) => category.activities)
+  categories: Category[];
 
   // Activity created by a user
   @ManyToOne(() => User, { nullable: false })

@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   BadRequestException,
   Injectable,
@@ -54,7 +49,7 @@ export class AuthService {
   private async decodeToken(token: string): Promise<JwtPayload> {
     try {
       return await this.jwtService.verifyAsync(token);
-    } catch (error) {
+    } catch {
       throw new BadRequestException(INVALID_TOKEN);
     }
   }
@@ -77,20 +72,16 @@ export class AuthService {
     requiresOtp?: boolean;
   }> {
     const { email, password } = loginDTO;
-    const user = await this.userRepository.findOne({
-      where: { email },
-      relations: ['role', 'role.permissions'],
-    });
+    const user = await this.userRepository.findOne({ where: { email } });
 
-    if (!user || (user && !bcrypt.compareSync(password, user.password))) {
+    if (!user || !bcrypt.compareSync(password, user.password)) {
       throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
-    if (user && !user.status) {
+    if (!user.status) {
       throw new UnauthorizedException(DEACTIVATED_USER);
     }
 
-    // check for two step factor authentication
     if (user.twoFactorAuthentication) {
       const otp = this.generateOTP();
       const otpExpiry = new Date();
@@ -100,7 +91,6 @@ export class AuthService {
       user.emailVerificationExpiry = otpExpiry;
       await this.userRepository.save(user);
 
-      // send otp email
       const emailData: Mail = {
         to: user.email,
         data: {
@@ -114,27 +104,17 @@ export class AuthService {
       return { requiresOtp: true, user: { email: user.email } };
     }
 
-    const payload: JwtPayload = {
-      id: user.id,
-      email: user.email,
-      type: user.userType,
-    };
+    const payload: JwtPayload = { id: user.id, email: user.email };
     const token = this.jwtService.sign(payload);
 
-    return {
-      token,
-      user: new UserSerializer(user),
-    };
+    return { token, user: new UserSerializer(user) };
   }
 
   async validateOTP(
     otpDto: OtpDTO,
   ): Promise<{ token: string; user: UserSerializer }> {
     const { email, otp } = otpDto;
-    const user = await this.userRepository.findOne({
-      where: { email },
-      relations: ['role', 'role.permissions'],
-    });
+    const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
       throw new UnauthorizedException(INVALID_CREDENTIALS);
@@ -153,17 +133,10 @@ export class AuthService {
     user.emailVerified = true;
     await this.userRepository.save(user);
 
-    const payload: JwtPayload = {
-      id: user.id,
-      email: user.email,
-      type: user.userType,
-    };
+    const payload: JwtPayload = { id: user.id, email: user.email };
     const token = this.jwtService.sign(payload);
 
-    return {
-      token,
-      user: new UserSerializer(user),
-    };
+    return { token, user: new UserSerializer(user) };
   }
 
   async requestPasswordReset(
@@ -172,20 +145,15 @@ export class AuthService {
     const user = await this.userService.getUserByEmail(
       requestResetPasswordDTO.email,
     );
-    const payload: JwtPayload = {
-      id: user.id,
-      email: user.email,
-      type: user.userType,
-    };
+
+    const payload: JwtPayload = { id: user.id, email: user.email };
     const token = this.jwtService.sign(payload);
 
     const emailData: Mail = {
       to: user.email,
-      data: {
-        firstname: user.firstName,
-        token,
-      },
+      data: { firstName: user.firstName, token },
     };
+
     await this.emailService.sendEmail(emailData, RESET_PASSWORD_EMAIL_JOB);
   }
 
@@ -203,11 +171,10 @@ export class AuthService {
     user.isDefaultPassword = false;
 
     const savedUser = await this.userRepository.save(user);
+
     const emailData: Mail = {
       to: savedUser.email,
-      data: {
-        firstname: savedUser.firstName,
-      },
+      data: { firstName: savedUser.firstName },
     };
 
     await this.emailService.sendEmail(emailData, PASSWORD_RESET_EMAIL_JOB);
@@ -218,18 +185,15 @@ export class AuthService {
     reqUser: RequestUser,
   ): Promise<void> {
     const user = await this.userService.getUser(reqUser.id);
-    if (
-      user &&
-      !bcrypt.compareSync(changePasswordDTO.currentPassword, user.password)
-    ) {
+
+    if (!bcrypt.compareSync(changePasswordDTO.currentPassword, user.password)) {
       throw new BadRequestException(INVALID_CURRENT_PASSWORD);
     }
 
-    const hash = bcrypt.hashSync(
+    user.password = bcrypt.hashSync(
       changePasswordDTO.newPassword,
       bcrypt.genSaltSync(10),
     );
-    user.password = hash;
     user.isDefaultPassword = false;
     await this.userRepository.save(user);
   }

@@ -1,32 +1,49 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsArray,
   IsEmail,
   IsNotEmpty,
   IsOptional,
-  IsStrongPassword,
+  IsString,
   IsUUID,
+  ArrayMinSize,
 } from 'class-validator';
 
 export class CreateStaffDto {
   @ApiProperty()
   @IsNotEmpty()
-  userName: string;
+  @IsString()
+  firstName: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  userName?: string;
 
   @ApiProperty()
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  position: string;
-
-  @ApiProperty()
-  @IsStrongPassword()
+  @ApiProperty({ required: false })
   @IsOptional()
-  password?: string;
+  @IsString()
+  position?: string;
 
+  /** UUID of the Role to assign to this staff member within the current school. */
   @ApiProperty()
   @IsUUID('4')
-  role: string;
+  @IsNotEmpty()
+  roleId: string;
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  branchIds: string[];
 }

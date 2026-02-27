@@ -34,4 +34,8 @@ export class CreateStudentDto {
   @IsOptional()
   @IsUUID()
   classroomId?: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  branchId: string;
 }

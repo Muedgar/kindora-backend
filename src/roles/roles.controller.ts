@@ -26,17 +26,19 @@ import {
 } from './messages';
 import { RoleService } from './roles.service';
 import { RoleSerializer } from './serializers/role.serializer';
-import { JwtAuthGuard } from 'src/auth/guards';
+import { JwtAuthGuard, PermissionGuard, SchoolContextGuard } from 'src/auth/guards';
+import { RequirePermission } from 'src/auth/decorators';
 
 @ApiTags('Roles')
 @Controller('roles')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
 export class RoleController {
   constructor(private roleService: RoleService) {}
 
   @Post('create')
   @ApiOperation({ summary: 'create a new role' })
   @ResponseMessage(ROLE_CREATED)
+  @RequirePermission('manage:school')
   async createRole(@Body() createRoleDTO: CreateRoleDTO) {
     return this.roleService.createRole(createRoleDTO);
   }
@@ -44,6 +46,7 @@ export class RoleController {
   @Get('')
   @ApiOperation({ summary: 'Get roles' })
   @ResponseMessage(ROLES_FETCHED)
+  @RequirePermission('read:users')
   async getRoles(@Query() listFilerDTO: ListFilterDTO) {
     return this.roleService.getRoles(listFilerDTO);
   }
@@ -51,6 +54,7 @@ export class RoleController {
   @Get(':id')
   @ApiOperation({ summary: 'Get role by id' })
   @ResponseMessage(ROLE_FETCHED)
+  @RequirePermission('read:users')
   async getRole(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     const role = await this.roleService.getRole(id);
     return new RoleSerializer(role);
@@ -59,6 +63,7 @@ export class RoleController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update role' })
   @ResponseMessage(ROLE_UPDATED)
+  @RequirePermission('manage:school')
   async updateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateRoleDTO: UpdateRoleDTO,
@@ -69,6 +74,7 @@ export class RoleController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete role' })
   @ResponseMessage(ROLE_DELETED)
+  @RequirePermission('manage:school')
   async deleteRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
@@ -78,6 +84,7 @@ export class RoleController {
   @Patch(':id/activate')
   @ApiOperation({ summary: 'Activate role' })
   @ResponseMessage(ROLE_ACTIVATED)
+  @RequirePermission('manage:school')
   async activateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
@@ -87,6 +94,7 @@ export class RoleController {
   @Patch(':id/deactivate')
   @ApiOperation({ summary: 'Deactivate role' })
   @ResponseMessage(ROLE_DEACTIVATED)
+  @RequirePermission('manage:school')
   async deactivateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {

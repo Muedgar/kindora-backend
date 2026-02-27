@@ -13,6 +13,7 @@ import { ActivityService } from './services/activity.service';
 import { ActivityController } from './controllers/activity.controller';
 import { ActivityTemplateService } from './services/activity-template.service';
 import { ActivitiesTemplateController } from './controllers/activity-template.controller';
+import { SchoolsModule } from 'src/schools/school.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ActivitiesTemplateController } from './controllers/activity-template.co
       GradingLevel,
     ]),
     UsersModule,
+    SchoolsModule,
   ],
   controllers: [
     ActivitiesTemplateController,

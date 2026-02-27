@@ -1,6 +1,6 @@
 import { AppBaseEntity } from 'src/common/entities';
 import { Cell } from 'src/location/rwanda/cell/cell.entity';
-import { SchoolLocation } from 'src/schools/entities/rwanda/school-location.entity';
+import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
 import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity('villages')
@@ -12,6 +12,6 @@ export class Village extends AppBaseEntity {
   @Index()
   cell: Cell;
 
-  @OneToMany(() => SchoolLocation, (schoolLocation) => schoolLocation.village)
-  schools: SchoolLocation[];
+  @OneToMany(() => SchoolBranch, (schoolBranch) => schoolBranch.rwandaVillage)
+  branches: SchoolBranch[];
 }

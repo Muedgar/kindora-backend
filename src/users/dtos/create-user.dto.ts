@@ -1,33 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
   IsEmail,
-  IsNotEmpty,
   IsOptional,
+  IsArray,
+  IsNotEmpty,
+  IsString,
   IsStrongPassword,
   IsUUID,
 } from 'class-validator';
-import { UserType } from '../enums';
 
 export class CreateUserDTO {
   @ApiProperty()
   @IsNotEmpty()
-  userName: string;
+  @IsString()
+  firstName: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  userName?: string;
 
   @ApiProperty()
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsStrongPassword()
   @IsOptional()
   password?: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  userType: UserType;
-
+  /** UUID of the Role to assign to this user within the current school. */
   @ApiProperty()
   @IsUUID('4')
-  role: string;
+  @IsNotEmpty()
+  roleId: string;
+
+  @ApiProperty({ required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  branchIds?: string[];
 }

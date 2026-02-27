@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { AppBaseEntity } from 'src/common/entities';
-import { Role } from 'src/roles/roles.entity';
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
-import { UserType } from '../enums';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
 
 @Entity('users')
@@ -11,25 +8,16 @@ export class User extends AppBaseEntity {
   userName: string;
 
   @Column({ type: 'varchar', length: 200, nullable: false })
-  firstName: any;
+  firstName: string;
 
   @Column({ type: 'varchar', length: 200, nullable: false })
-  lastName: any;
+  lastName: string;
 
   @Column({ type: 'varchar', length: 100, nullable: false, unique: true })
   email: string;
 
   @Column({ type: 'varchar', length: 250, nullable: false })
   password: string;
-
-  @Column({ type: 'varchar', length: 50, nullable: false })
-  userType: UserType;
-
-  @ManyToOne(() => Role, (role) => role.pkid, { nullable: true })
-  role: Role;
-
-  @OneToMany(() => SchoolMember, (schoolMember) => schoolMember.member)
-  schools: SchoolMember[];
 
   @Column({ type: 'boolean', nullable: false, default: true })
   status: boolean;
@@ -48,4 +36,7 @@ export class User extends AppBaseEntity {
 
   @Column({ type: 'timestamptz', nullable: true })
   emailVerificationExpiry: Date;
+
+  @OneToMany(() => SchoolMember, (schoolMember) => schoolMember.member)
+  schools: SchoolMember[];
 }
