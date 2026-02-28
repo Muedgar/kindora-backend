@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
-import { EmailService } from './services';
+import { EmailService, AuditLogService } from './services';
 import { EmailProcessor } from './processors';
 import { BullModule } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { MAIL_QUEUE } from './constants';
+import { AuditLog } from './entities/audit-log.entity';
 
 const configService = new ConfigService();
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([AuditLog]),
     BullModule.registerQueue({
       name: MAIL_QUEUE,
       redis: {
@@ -18,7 +21,7 @@ const configService = new ConfigService();
       },
     }),
   ],
-  providers: [EmailService, EmailProcessor],
-  exports: [EmailService],
+  providers: [EmailService, EmailProcessor, AuditLogService],
+  exports: [EmailService, AuditLogService],
 })
 export class CommonModule {}

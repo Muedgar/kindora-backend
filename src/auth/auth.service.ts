@@ -12,8 +12,12 @@ import {
   DEACTIVATED_USER,
   INVALID_OTP,
   INVALID_TOKEN,
+  INVITE_TOKEN_EXPIRED,
+  INVITE_TOKEN_INVALID,
   OTP_EXPIRED,
 } from './messages';
+import { SchoolMember } from 'src/schools/entities/school-member.entity';
+import { ESchoolMemberStatus } from 'src/schools/enums';
 import * as bcrypt from 'bcryptjs';
 import {
   ChangePasswordDto,
@@ -41,6 +45,8 @@ import {
 export class AuthService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(SchoolMember)
+    private schoolMemberRepository: Repository<SchoolMember>,
     private jwtService: JwtService,
     private userService: UserService,
     private emailService: EmailService,
@@ -196,5 +202,61 @@ export class AuthService {
     );
     user.isDefaultPassword = false;
     await this.userRepository.save(user);
+  }
+
+  /**
+   * Accepts a school invitation.
+   *
+   * Validates the signed invite JWT, sets the user's chosen password,
+   * marks emailVerified = true, and transitions the SchoolMember status
+   * from INVITED → ACTIVE.
+   *
+   * Returns a session token so the user is logged in immediately.
+   */
+  async acceptInvite(
+    token: string,
+    password: string,
+  ): Promise<{ token: string; user: UserSerializer }> {
+    // 1. Verify & decode the JWT
+    let payload: JwtPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+    } catch {
+      throw new BadRequestException(INVITE_TOKEN_EXPIRED);
+    }
+
+    // 2. Reject tokens that weren't issued for the invite flow
+    if (payload.purpose !== 'invite') {
+      throw new BadRequestException(INVITE_TOKEN_INVALID);
+    }
+
+    // 3. Load the user
+    const user = await this.userService.getUser(payload.id);
+
+    // 4. Set the chosen password and mark the account verified
+    user.password = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
+    user.isDefaultPassword = false;
+    user.emailVerified = true;
+    await this.userRepository.save(user);
+
+    // 5. Activate the pending school membership
+    const membership = await this.schoolMemberRepository.findOne({
+      where: {
+        member: { id: user.id },
+        status: ESchoolMemberStatus.INVITED,
+      },
+    });
+
+    if (membership) {
+      membership.status = ESchoolMemberStatus.ACTIVE;
+      membership.acceptedAt = new Date();
+      await this.schoolMemberRepository.save(membership);
+    }
+
+    // 6. Issue a session token so the user is logged in immediately
+    const sessionPayload: JwtPayload = { id: user.id, email: user.email };
+    const sessionToken = this.jwtService.sign(sessionPayload);
+
+    return { token: sessionToken, user: new UserSerializer(user) };
   }
 }

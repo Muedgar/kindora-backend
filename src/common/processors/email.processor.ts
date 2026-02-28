@@ -4,6 +4,7 @@ import { Job } from 'bull';
 
 import { MailerService } from '@nestjs-modules/mailer';
 import {
+  INVITE_EMAIL_JOB,
   MAIL_QUEUE,
   OTP_VERIFICATION_EMAIL_JOB,
   PASSWORD_RESET_EMAIL_JOB,
@@ -73,6 +74,20 @@ export class EmailProcessor {
       ...data,
       subject: 'Account Verification',
       template: 'otp-verification-email',
+      context: {
+        data: data.data,
+      },
+    });
+  }
+
+  @Process(INVITE_EMAIL_JOB)
+  async sendInviteEmail(job: Job<Mail>) {
+    const { data } = job;
+
+    await this.mailService.sendMail({
+      ...data,
+      subject: "You've been invited to Kindora",
+      template: 'invite-email',
       context: {
         data: data.data,
       },

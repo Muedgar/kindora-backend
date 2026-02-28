@@ -6,9 +6,10 @@ import { ListFilterDTO } from 'src/common/dtos';
 import { ClassroomsService } from './classrooms.service';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
 import { BranchContextGuard, JwtAuthGuard, PermissionGuard } from 'src/auth/guards';
-import { CurrentBranch, GetUser, RequirePermission, RequiresBranchAccess } from 'src/auth/decorators';
+import { CurrentBranch, GetSchoolContext, GetUser, RequirePermission, RequiresBranchAccess } from 'src/auth/decorators';
 import { User } from 'src/users/entities';
 import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
+import { SchoolContext } from 'src/auth/interfaces/school-context.interface';
 
 @Controller('classrooms')
 @UseGuards(JwtAuthGuard, BranchContextGuard, PermissionGuard)
@@ -24,10 +25,11 @@ export class ClassroomsController {
     @Body() createClassroomDto: CreateClassroomDto,
     @GetUser() user: User,
     @CurrentBranch() currentBranch: SchoolBranch,
+    @GetSchoolContext() ctx: SchoolContext,
   ) {
     if (currentBranch) createClassroomDto.branchId = currentBranch.id;
     const userId = user.id;
-    return this.classroomsService.create(createClassroomDto, userId);
+    return this.classroomsService.create(createClassroomDto, userId, ctx.school);
   }
 
   @Get('')
@@ -38,7 +40,8 @@ export class ClassroomsController {
   async getClassrooms(
     @Query() listFilterDTO: ListFilterDTO,
     @CurrentBranch() currentBranch: SchoolBranch,
+    @GetSchoolContext() ctx: SchoolContext,
   ) {
-    return this.classroomsService.getClassrooms(listFilterDTO, currentBranch?.id);
+    return this.classroomsService.getClassrooms(listFilterDTO, ctx.school, currentBranch?.id);
   }
 }

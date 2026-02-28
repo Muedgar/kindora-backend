@@ -11,13 +11,16 @@ import {
 import { AuthService } from './auth.service';
 import { ApiOperation } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/common/decorators';
+import { LogActivity } from 'src/common/decorators/log-activity.decorator';
 import {
   AUTHENTICATED,
   FORGOT_PASSOWRD_EMAIL_SENT,
+  INVITE_ACCEPTED,
   PASSWORD_CHANGED,
   PASSWORD_RESET,
 } from './messages';
 import {
+  AcceptInviteDto,
   ChangePasswordDto,
   LoginDto,
   OtpDTO,
@@ -52,6 +55,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset' })
   @ResponseMessage(FORGOT_PASSOWRD_EMAIL_SENT)
+  @LogActivity({ action: 'request:password-reset', resource: 'user', includeBody: true })
   requestPasswordReset(
     @Body() requestResetPasswordDTO: RequestResetPasswordDto,
   ) {
@@ -67,6 +71,15 @@ export class AuthController {
     @Body() resetPasswordDTO: ResetPasswordDto,
   ) {
     return this.authService.resetPassword(token, resetPasswordDTO);
+  }
+
+  @Post('accept-invite')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accept a school invitation and set password' })
+  @ResponseMessage(INVITE_ACCEPTED)
+  @LogActivity({ action: 'accept:invite', resource: 'user', includeBody: false })
+  acceptInvite(@Body() dto: AcceptInviteDto) {
+    return this.authService.acceptInvite(dto.token, dto.password);
   }
 
   @Patch('change-password')

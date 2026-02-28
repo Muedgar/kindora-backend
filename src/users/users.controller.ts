@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/common/decorators';
+import { LogActivity } from 'src/common/decorators/log-activity.decorator';
 import { ListFilterDTO } from 'src/common/dtos';
 import { ChangePasswordDTO, RegisterUserDTO, UpdateUserDTO } from './dtos';
 import { CreateUserDTO } from './dtos/create-user.dto';
@@ -59,6 +60,7 @@ export class UserController {
   @ResponseMessage(USER_CREATED)
   @UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
   @RequirePermission('manage:users')
+  @LogActivity({ action: 'create:user', resource: 'user', includeBody: true })
   async createUser(
     @Body() createUserDTO: CreateUserDTO,
     @GetUser() requestingUser: User,
@@ -105,6 +107,7 @@ export class UserController {
   @ApiOperation({ summary: 'Update a user' })
   @UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
   @RequirePermission('manage:users')
+  @LogActivity({ action: 'update:user', resource: 'user', includeBody: true })
   async updateUser(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateUserDTO: UpdateUserDTO,
@@ -127,6 +130,7 @@ export class UserController {
   @ApiOperation({ summary: 'Deactivate user' })
   @ResponseMessage(USER_DEACTIVATED)
   @UseGuards(JwtAuthGuard)
+  @LogActivity({ action: 'deactivate:user', resource: 'user' })
   async deactivateUser(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
@@ -175,6 +179,7 @@ export class UserController {
   @ResponseMessage(USER_DELETED)
   @UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
   @RequirePermission('manage:users')
+  @LogActivity({ action: 'delete:user', resource: 'user' })
   async deleteUser(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @GetSchoolContext() ctx: SchoolContext,

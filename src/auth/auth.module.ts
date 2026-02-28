@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/entities';
 import { UsersModule } from 'src/users/users.module';
+import { SchoolMember } from 'src/schools/entities/school-member.entity';
 import { JwtStrategy } from './strategies';
 import { CommonModule } from 'src/common/common.module';
 
@@ -21,7 +22,7 @@ import { CommonModule } from 'src/common/common.module';
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, SchoolMember]),
     UsersModule,
     CommonModule,
   ],
