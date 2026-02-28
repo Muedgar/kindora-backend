@@ -31,8 +31,10 @@ import { UserSerializer } from './serializers';
 import { ListFilterService } from 'src/common/services';
 import { generateRandomPassword } from 'src/utils';
 import { EmailService } from 'src/common/services/';
-import { REGISTER_EMAIL_JOB } from 'src/common/constants';
+import { INVITE_EMAIL_JOB, REGISTER_EMAIL_JOB } from 'src/common/constants';
 import { plainToInstance } from 'class-transformer';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from 'src/auth/interfaces';
 import { SchoolService } from 'src/schools/school.service';
 import { School } from 'src/schools/entities/school.entity';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
@@ -53,6 +55,7 @@ export class UserService {
     private emailService: EmailService,
     private schoolService: SchoolService,
     private villageService: VillageService,
+    private jwtService: JwtService,
   ) {}
 
   async doesUserEmailExists(email: string): Promise<void> {
@@ -218,7 +221,8 @@ export class UserService {
 
     const savedUser = await this.userRepository.manager.transaction(
       async (tx) => {
-        // 1) User identity
+        // 1) User identity — password is a random unguessable placeholder until
+        //    the invite is accepted.  emailVerified stays false until acceptance.
         const user = tx.create(User, {
           userName: createUserDTO.userName,
           firstName: createUserDTO.firstName,
@@ -226,7 +230,7 @@ export class UserService {
           email: createUserDTO.email,
           password: hashedPassword,
           status: true,
-          emailVerified: true,
+          emailVerified: false,
         });
 
         const createdUser = await tx.save(user);
@@ -246,13 +250,13 @@ export class UserService {
           defaultBranch = selectedBranch;
         }
 
-        // 3) School membership
+        // 3) School membership — starts as INVITED; transitions to ACTIVE
+        //    when the user accepts the invite via POST /auth/accept-invite.
         const membership = tx.create(SchoolMember, {
           member: createdUser,
           school,
-          status: ESchoolMemberStatus.ACTIVE,
+          status: ESchoolMemberStatus.INVITED,
           isDefault: true,
-          acceptedAt: new Date(),
           invitedBy: requestingUser,
           defaultBranch,
         });
@@ -270,13 +274,23 @@ export class UserService {
       },
     );
 
-    // TODO (Phase 7): Send invite-token email instead of plaintext credentials.
+    // Generate a 24-hour invite token scoped to the 'invite' purpose.
+    const invitePayload: JwtPayload = {
+      id: savedUser.id,
+      email: savedUser.email,
+      purpose: 'invite',
+    };
+    const inviteToken = this.jwtService.sign(invitePayload, { expiresIn: '24h' });
+
     const emailData: Mail = {
       to: savedUser.email,
-      data: { firstName: savedUser.firstName, email: savedUser.email },
+      data: {
+        firstName: savedUser.firstName,
+        inviteToken,
+      },
     };
 
-    await this.emailService.sendEmail(emailData, REGISTER_EMAIL_JOB);
+    await this.emailService.sendEmail(emailData, INVITE_EMAIL_JOB);
 
     return plainToInstance(UserSerializer, savedUser, {
       excludeExtraneousValues: true,

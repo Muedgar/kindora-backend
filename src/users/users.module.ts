@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { RolesModule } from 'src/roles/roles.module';
 import { User } from './entities';
 import { UserController } from './users.controller';
@@ -17,6 +19,13 @@ import { SchoolMemberRole } from 'src/schools/entities/school-member-role.entity
     RolesModule,
     CommonModule,
     SchoolsModule,
+    JwtModule.registerAsync({
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('SECRET_KEY'),
+        signOptions: { expiresIn: '1h' },
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [UserController, MeController],
   providers: [UserService, MeService],

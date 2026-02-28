@@ -1,20 +1,13 @@
 import { Expose } from 'class-transformer';
+import { BaseSerializer } from 'src/common/serializers';
+import { ECountry } from '../enums';
 
-export class SchoolSerializer {
-  @Expose()
-  id: string;
-
+export class SchoolSerializer extends BaseSerializer {
   @Expose()
   name: string;
 
   @Expose()
-  address: string;
-
-  @Expose()
-  city: string;
-
-  @Expose()
-  country: string;
+  countries: ECountry[];
 
   @Expose()
   phoneNumber: string;

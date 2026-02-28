@@ -30,6 +30,7 @@ export class BranchContextGuard implements CanActivate {
       headers: Record<string, string | undefined>;
       user?: User;
       schoolContext?: {
+        school: import('src/schools/entities/school.entity').School;
         schoolId: string;
         schoolMember: SchoolMember;
         branch: SchoolBranch | null;
@@ -106,6 +107,7 @@ export class BranchContextGuard implements CanActivate {
     ];
 
     request.schoolContext = {
+      school: member.school,
       schoolId,
       schoolMember: member,
       branch,

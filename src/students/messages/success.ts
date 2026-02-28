@@ -3,3 +3,7 @@ export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENT_UPDATED = 'Student updated successfully';
 export const STUDENT_DELETED = 'Student deleted successfully';
+export const GUARDIAN_ADDED = 'Guardian added successfully';
+export const GUARDIANS_FETCHED = 'Guardians fetched successfully';
+export const GUARDIAN_UPDATED = 'Guardian updated successfully';
+export const GUARDIAN_REMOVED = 'Guardian removed successfully';

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { RolesModule } from './roles/roles.module';
@@ -24,6 +25,9 @@ import { AuthModule } from './auth/auth.module';
 import { ReportsModule } from './reports/reports.module';
 import { CommunicationModule } from './communication/communication.module';
 import { CheckinoutModule } from './checkinout/checkinout.module';
+import { CommonModule } from './common/common.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { AuditLogInterceptor } from './common/interceptors';
 
 @Module({
   imports: [
@@ -78,8 +82,16 @@ import { CheckinoutModule } from './checkinout/checkinout.module';
     ReportsModule,
     CommunicationModule,
     CheckinoutModule,
+    CommonModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    },
+  ],
 })
 export class AppModule {}

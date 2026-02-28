@@ -11,6 +11,7 @@ import { ClassroomSerializer } from './serializers';
 import { Classroom } from './entities/classroom.entity';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
 import { CLASSROOM_EXISTS, CLASSROOM_NOT_FOUND } from './messages';
+import { School } from 'src/schools/entities/school.entity';
 
 @Injectable()
 export class ClassroomsService {
@@ -24,6 +25,7 @@ export class ClassroomsService {
   async create(
     createClassroomDto: CreateClassroomDto,
     requestUser: string,
+    school: School,
   ): Promise<ClassroomSerializer> {
     const userFound = await this.userService.getUser(requestUser);
     const branch = await this.schoolService.getBranchById(createClassroomDto.branchId);
@@ -35,6 +37,7 @@ export class ClassroomsService {
     const foundClassroom = await this.classroomRepository.findOne({
       where: {
         name: createClassroomDto.name,
+        school: { pkid: school.pkid },
       },
     });
 
@@ -46,6 +49,7 @@ export class ClassroomsService {
       capacity: Number(createClassroomDto.capacity),
       createdBy: userFound,
       branch,
+      school,
     });
     const savedClassroom = await this.classroomRepository.save(classroom);
     return plainToInstance(ClassroomSerializer, savedClassroom, {
@@ -55,6 +59,7 @@ export class ClassroomsService {
 
   async getClassrooms(
     filters: ListFilterDTO,
+    school: School,
     branchId?: string,
   ): Promise<FilterResponse<ClassroomSerializer>> {
     const listFilterService = new ListFilterService(
@@ -63,8 +68,13 @@ export class ClassroomsService {
     );
     const searchFields = ['name', 'ageGroup', 'capacity'];
 
+    const where: FindManyOptions<Classroom>['where'] = {
+      school: { pkid: school.pkid },
+      ...(branchId ? { branch: { id: branchId } } : {}),
+    };
+
     const options: FindManyOptions<Classroom> = {
-      where: branchId ? { branch: { id: branchId } } : {},
+      where,
       relations: ['createdBy', 'students', 'branch', 'branch.school'],
     };
 

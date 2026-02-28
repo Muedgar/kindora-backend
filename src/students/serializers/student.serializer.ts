@@ -1,7 +1,7 @@
-import { Exclude, Expose, Type } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { ClassroomSerializer } from 'src/classrooms/serializers';
 import { BaseSerializer } from 'src/common/serializers';
-import { ParentSerializer } from 'src/parents/serializers';
+import { StudentGuardianSerializer } from './student-guardian.serializer';
 
 export class StudentSerializer extends BaseSerializer {
   @Expose()
@@ -16,9 +16,14 @@ export class StudentSerializer extends BaseSerializer {
   @Expose()
   notes: string;
 
+  /** ID of the school this student belongs to. */
   @Expose()
-  @Type(() => ParentSerializer)
-  parent: ParentSerializer;
+  @Transform(({ obj }) => obj.school?.id)
+  schoolId: string;
+
+  @Expose()
+  @Type(() => StudentGuardianSerializer)
+  guardians: StudentGuardianSerializer[];
 
   @Expose()
   @Type(() => ClassroomSerializer)

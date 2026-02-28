@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to Kindora</title>
+  <title>You've been invited to Kindora</title>
   <style>
     body {
       margin: 0;
@@ -50,6 +50,15 @@
       margin: 0 0 20px;
     }
 
+    .notice {
+      background-color: #fde68a;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: #92400e;
+    }
+
     .button {
       display: inline-block;
       background-color: #f97316;
@@ -89,12 +98,16 @@
     </div>
     <div class="content">
       <p>Hi {{data.firstName}},</p>
-      <p>We're so excited to have you as part of the Kindora family — your space for managing daycare and nursery activities with ease and care.</p>
-      <p>Your account has been created with the email <strong>{{data.email}}</strong>. You can now log in to the dashboard.</p>
+      <p>You've been invited to join Kindora — your space for managing daycare and nursery activities with ease and care.</p>
+      <p>Click the button below to set your password and activate your account. This invitation link expires in <strong>24 hours</strong>.</p>
 
-      <a href="{{data.clientUrl}}/auth/login" target="_blank" class="button">Go to Dashboard →</a>
+      <a href="{{data.clientUrl}}/accept-invite?token={{data.inviteToken}}" target="_blank" class="button">
+        Accept Invitation &amp; Set Password →
+      </a>
 
-      <p style="margin-top: 32px;">If you didn’t sign up for Kindora, feel free to disregard this message.</p>
+      <div class="notice" style="margin-top: 32px;">
+        This link is personal — please do not share it. If you didn't expect this invitation, you can safely ignore this email.
+      </div>
     </div>
     <div class="footer">
       With warmth and joy,<br />
