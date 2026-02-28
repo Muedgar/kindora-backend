@@ -11,22 +11,26 @@ import { User } from 'src/users/entities';
 import { UsersModule } from 'src/users/users.module';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
 import { JwtStrategy } from './strategies';
+import { ReauthGuard } from './guards';
 import { CommonModule } from 'src/common/common.module';
+import { UserSession } from './entities/user-session.entity';
 
 @Module({
   imports: [
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('SECRET_KEY'),
-        signOptions: { expiresIn: '1h' },
+        // Default expiry for ad-hoc signs (e.g. invite tokens, reset tokens).
+        // Access tokens are explicitly signed with expiresIn: '15m' in AuthService.
+        signOptions: { expiresIn: '15m' },
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([User, SchoolMember]),
+    TypeOrmModule.forFeature([User, SchoolMember, UserSession]),
     UsersModule,
     CommonModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, ReauthGuard],
 })
 export class AuthModule {}

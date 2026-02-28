@@ -6,3 +6,7 @@ export const PASSWORD_CHANGED = 'Password changed successfully';
 export const PROFILE_FETCHED = 'User profile fetched successfully';
 export const PROFILE_UPDATED = 'User profile updated successfully';
 export const INVITE_ACCEPTED = 'Invite accepted. Your account is now active — you can log in.';
+export const TOKEN_REFRESHED = 'Access token refreshed successfully.';
+export const LOGGED_OUT = 'Signed out successfully.';
+export const LOGGED_OUT_ALL = 'Signed out from all devices successfully.';
+export const REAUTH_SUCCESS = 'Identity verified successfully.';

@@ -10,6 +10,13 @@
 export interface JwtPayload {
   id: string;
   email: string;
-  /** Restricts the token to a specific flow (e.g. 'invite'). */
+  /**
+   * Mirrors User.tokenVersion at signing time.
+   * JwtStrategy rejects the token if the stored value has since been incremented.
+   */
+  tokenVersion?: number;
+  /** ID of the UserSession row this access-token belongs to. */
+  sessionId?: string;
+  /** Restricts the token to a specific flow (e.g. 'invite', 'reauth'). */
   purpose?: string;
 }

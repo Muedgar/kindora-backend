@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 import { WEAK_PASSWORD } from '../messages';
 import { Match } from '../decorators';
 
@@ -11,6 +11,7 @@ export class RequestResetPasswordDto {
 
 export class ResetPasswordDto {
   @ApiProperty()
+  @MinLength(12, { message: 'Password must be at least 12 characters' })
   @Matches(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).+$/, {
     message: WEAK_PASSWORD,
   })
@@ -32,6 +33,7 @@ export class ChangePasswordDto {
   currentPassword: string;
 
   @ApiProperty()
+  @MinLength(12, { message: 'Password must be at least 12 characters' })
   @Matches(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).+$/, {
     message: WEAK_PASSWORD,
   })
