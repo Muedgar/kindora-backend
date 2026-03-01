@@ -13,6 +13,7 @@ export class DistrictService {
   constructor(
     @InjectRepository(District)
     private districtRepository: Repository<District>,
+    private listFilterService: ListFilterService,
   ) {}
 
   async getDistrictById(id: string): Promise<District> {
@@ -85,11 +86,11 @@ export class DistrictService {
   async getDistricts(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<DistrictSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.districtRepository,
-      DistrictSerializer,
-    );
-
-    return listFilterService.filter({ filters, searchFields: ['name'] });
+    return this.listFilterService.filter({
+      repository: this.districtRepository,
+      serializer: DistrictSerializer,
+      filters,
+      searchFields: ['name'],
+    });
   }
 }

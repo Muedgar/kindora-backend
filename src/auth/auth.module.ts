@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -19,7 +16,8 @@ import { UserSession } from './entities/user-session.entity';
   imports: [
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get('SECRET_KEY'),
+        // getOrThrow ensures the app fails fast at startup if SECRET_KEY is missing.
+        secret: configService.getOrThrow<string>('SECRET_KEY'),
         // Default expiry for ad-hoc signs (e.g. invite tokens, reset tokens).
         // Access tokens are explicitly signed with expiresIn: '15m' in AuthService.
         signOptions: { expiresIn: '15m' },

@@ -16,6 +16,7 @@ export class VillageService {
   constructor(
     @InjectRepository(Village) private villageRepository: Repository<Village>,
     @InjectRepository(Cell) private cellRepository: Repository<Cell>,
+    private listFilterService: ListFilterService,
   ) {}
 
   async getVillageById(id: string): Promise<Village> {
@@ -70,27 +71,24 @@ export class VillageService {
   async getVillages(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<VillageSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.villageRepository,
-      VillageSerializer,
-    );
-
-    return listFilterService.filter({ filters, searchFields: ['name'] });
+    return this.listFilterService.filter({
+      repository: this.villageRepository,
+      serializer: VillageSerializer,
+      filters,
+      searchFields: ['name'],
+    });
   }
 
   async getVillagesWithRelations(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<VillageWithRelationsSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.villageRepository,
-      VillageWithRelationsSerializer,
-    );
-
     const options: FindManyOptions<Village> = {
       relations: ['cell', 'cell.sector', 'cell.sector.district'],
     };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.villageRepository,
+      serializer: VillageWithRelationsSerializer,
       filters,
       searchFields: ['name'],
       options,

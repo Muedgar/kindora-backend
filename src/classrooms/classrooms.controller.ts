@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/common/decorators';
 import { CLASSROOM_CREATED, CLASSROOMS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
@@ -11,6 +11,7 @@ import { User } from 'src/users/entities';
 import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
 import { SchoolContext } from 'src/auth/interfaces/school-context.interface';
 
+@ApiTags('Classrooms')
 @Controller('classrooms')
 @UseGuards(JwtAuthGuard, BranchContextGuard, PermissionGuard)
 export class ClassroomsController {

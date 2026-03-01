@@ -16,6 +16,7 @@ export class GradingLevelService {
     @InjectRepository(GradingLevel)
     private gradingLevelRepository: Repository<GradingLevel>,
     private userService: UserService,
+    private listFilterService: ListFilterService,
   ) {}
   async createGradingLevel(
     createGradingLevelDto: CreateGradingLevelDto,
@@ -58,13 +59,11 @@ export class GradingLevelService {
   async findAll(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<GradingLevelSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.gradingLevelRepository,
-      GradingLevelSerializer,
-    );
     const searchFields = ['name'];
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.gradingLevelRepository,
+      serializer: GradingLevelSerializer,
       filters,
       searchFields,
     }) as Promise<FilterResponse<GradingLevelSerializer>>;

@@ -1,35 +1,29 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { PipeTransform, Injectable, ArgumentMetadata } from '@nestjs/common';
 
+type PlainObject = Record<string, unknown>;
+
 @Injectable()
-export class TrimBodyPipe implements PipeTransform<any> {
-  private isObj(obj: any): boolean {
+export class TrimBodyPipe implements PipeTransform {
+  private isObj(obj: unknown): obj is PlainObject {
     return typeof obj === 'object' && obj !== null;
   }
 
-  private trim(values) {
-    Object.keys(values).forEach((key) => {
-      if (key !== 'password') {
-        if (this.isObj(values[key])) {
-          values[key] = this.trim(values[key]);
-        } else {
-          if (typeof values[key] === 'string') {
-            values[key] = values[key].trim();
-          }
-        }
-      }
-    });
-    return values;
+  private trim(values: PlainObject): PlainObject {
+    return Object.fromEntries(
+      Object.entries(values).map(([key, val]) => {
+        if (key === 'password') return [key, val];
+        if (this.isObj(val)) return [key, this.trim(val)];
+        if (typeof val === 'string') return [key, val.trim()];
+        return [key, val];
+      }),
+    );
   }
 
-  transform(values: any, metadata: ArgumentMetadata) {
+  transform(value: unknown, metadata: ArgumentMetadata): unknown {
     const { type } = metadata;
-    if (this.isObj(values) && type === 'body') {
-      return this.trim(values);
+    if (this.isObj(value) && type === 'body') {
+      return this.trim(value);
     }
-    return values;
+    return value;
   }
 }

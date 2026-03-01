@@ -27,6 +27,7 @@ export class RoleService {
   constructor(
     @InjectRepository(Role) private roleRepository: Repository<Role>,
     private permissionService: PermissionsService,
+    private listFilterService: ListFilterService,
   ) {}
 
   private async doesRoleExists(name: string) {
@@ -97,14 +98,11 @@ export class RoleService {
   async getRoles(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<RoleSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.roleRepository,
-      RoleSerializer,
-    );
-
     const options: FindManyOptions<Role> = { relations: ['permissions'] };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.roleRepository,
+      serializer: RoleSerializer,
       filters,
       searchFields: ['name'],
       options,

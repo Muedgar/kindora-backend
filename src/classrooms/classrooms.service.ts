@@ -12,6 +12,7 @@ import { Classroom } from './entities/classroom.entity';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
 import { CLASSROOM_EXISTS, CLASSROOM_NOT_FOUND } from './messages';
 import { School } from 'src/schools/entities/school.entity';
+import { SCHOOL_BRANCH_NOT_FOUND } from 'src/schools/messages';
 
 @Injectable()
 export class ClassroomsService {
@@ -20,6 +21,7 @@ export class ClassroomsService {
     private classroomRepository: Repository<Classroom>,
     private userService: UserService,
     private schoolService: SchoolService,
+    private listFilterService: ListFilterService,
   ) {}
 
   async create(
@@ -31,7 +33,7 @@ export class ClassroomsService {
     const branch = await this.schoolService.getBranchById(createClassroomDto.branchId);
 
     if (!branch) {
-      throw new BadRequestException('Branch not found');
+      throw new BadRequestException(SCHOOL_BRANCH_NOT_FOUND);
     }
 
     const foundClassroom = await this.classroomRepository.findOne({
@@ -62,10 +64,6 @@ export class ClassroomsService {
     school: School,
     branchId?: string,
   ): Promise<FilterResponse<ClassroomSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.classroomRepository,
-      ClassroomSerializer,
-    );
     const searchFields = ['name', 'ageGroup', 'capacity'];
 
     const where: FindManyOptions<Classroom>['where'] = {
@@ -78,7 +76,9 @@ export class ClassroomsService {
       relations: ['createdBy', 'students', 'branch', 'branch.school'],
     };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.classroomRepository,
+      serializer: ClassroomSerializer,
       filters,
       searchFields,
       options,

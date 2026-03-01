@@ -13,6 +13,7 @@ export class ProvinceService {
   constructor(
     @InjectRepository(Province)
     private provinceRepository: Repository<Province>,
+    private listFilterService: ListFilterService,
   ) {}
 
   async getProvince(id: string): Promise<Province> {
@@ -47,18 +48,15 @@ export class ProvinceService {
   async getProvinces(
     filters: ProvinceFilterDto,
   ): Promise<FilterResponse<ProvinceSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.provinceRepository,
-      ProvinceSerializer,
-    );
-
     const options: FindManyOptions<Province> = {
       where: {
         pkid: 6,
       },
     };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.provinceRepository,
+      serializer: ProvinceSerializer,
       filters,
       searchFields: ['name'],
       options: filters.isDiaspora ? options : undefined,

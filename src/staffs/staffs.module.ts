@@ -6,9 +6,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Staff } from './entities/staff.entity';
 import { StaffBranch } from './entities/staff-branch.entity';
 import { SchoolsModule } from 'src/schools/school.module';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
   imports: [
+    CommonModule,
     TypeOrmModule.forFeature([Staff, StaffBranch]),
     UsersModule,
     SchoolsModule,

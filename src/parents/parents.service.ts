@@ -18,6 +18,7 @@ export class ParentsService {
   constructor(
     @InjectRepository(Parent) private parentRepository: Repository<Parent>,
     private userService: UserService,
+    private listFilterService: ListFilterService,
   ) {}
 
   /**
@@ -68,10 +69,6 @@ export class ParentsService {
     filters: ListFilterDTO,
     schoolId?: string,
   ): Promise<FilterResponse<ParentSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.parentRepository,
-      ParentSerializer,
-    );
     const searchFields = ['occupation', 'phoneNumber', 'address'];
 
     const options: FindManyOptions<Parent> = {
@@ -79,7 +76,9 @@ export class ParentsService {
       relations: ['user'],
     };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.parentRepository,
+      serializer: ParentSerializer,
       filters,
       searchFields,
       options,

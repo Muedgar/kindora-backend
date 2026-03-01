@@ -25,7 +25,7 @@ export class ListFilterDTO {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  orderBy?: string = 'pkid';
+  orderBy?: string = 'createdAt';
 
   @ApiProperty({ required: false })
   @IsEnum(SortOrder)

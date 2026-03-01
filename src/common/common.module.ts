@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { EmailService, AuditLogService } from './services';
+import { EmailService, AuditLogService, ListFilterService } from './services';
 import { EmailProcessor } from './processors';
 import { BullModule } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
@@ -21,7 +21,7 @@ const configService = new ConfigService();
       },
     }),
   ],
-  providers: [EmailService, EmailProcessor, AuditLogService],
-  exports: [EmailService, AuditLogService],
+  providers: [EmailService, EmailProcessor, AuditLogService, ListFilterService],
+  exports: [EmailService, AuditLogService, ListFilterService],
 })
 export class CommonModule {}

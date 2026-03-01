@@ -5,9 +5,11 @@ import { UsersModule } from 'src/users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Parent } from './entities/parent.entity';
 import { SchoolsModule } from 'src/schools/school.module';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Parent]), UsersModule, SchoolsModule],
+  imports: [
+    CommonModule,TypeOrmModule.forFeature([Parent]), UsersModule, SchoolsModule],
   controllers: [ParentsController],
   providers: [ParentsService],
   exports: [ParentsService],

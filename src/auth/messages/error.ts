@@ -23,3 +23,5 @@ export const REAUTH_TOKEN_INVALID = 'Re-authentication token is invalid or has e
 export const PASSWORD_RESET_TOKEN_INVALID = 'Password reset link is invalid. Please request a new one.'
 export const PASSWORD_RESET_TOKEN_USED = 'This password reset link has already been used. Please request a new one.'
 export const PASSWORD_RESET_TOKEN_EXPIRED = 'Password reset link has expired. Please request a new one.'
+/** B2 — session management error. */
+export const SESSION_NOT_FOUND = 'Session not found or already revoked.'

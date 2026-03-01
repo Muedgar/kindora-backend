@@ -14,9 +14,11 @@ import { ActivityController } from './controllers/activity.controller';
 import { ActivityTemplateService } from './services/activity-template.service';
 import { ActivitiesTemplateController } from './controllers/activity-template.controller';
 import { SchoolsModule } from 'src/schools/school.module';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
   imports: [
+    CommonModule,
     TypeOrmModule.forFeature([
       ActivitiesTemplate,
       Activity,

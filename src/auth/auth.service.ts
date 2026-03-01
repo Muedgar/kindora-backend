@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -21,6 +22,7 @@ import {
   PASSWORD_RESET_TOKEN_INVALID,
   PASSWORD_RESET_TOKEN_USED,
   PASSWORD_RESET_TOKEN_EXPIRED,
+  SESSION_NOT_FOUND,
 } from './messages';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
 import { ESchoolMemberStatus } from 'src/schools/enums';
@@ -44,10 +46,12 @@ import { JwtPayload } from './interfaces';
 import { RequestUser } from './types';
 import { Mail } from 'src/common/interfaces';
 import { EmailService } from 'src/common/services';
+import { AuditLogService } from 'src/common/services';
 import {
   OTP_VERIFICATION_EMAIL_JOB,
   PASSWORD_RESET_EMAIL_JOB,
   RESET_PASSWORD_EMAIL_JOB,
+  ACCOUNT_LOCKED_EMAIL_JOB,
 } from 'src/common/constants';
 import { UserSession } from './entities/user-session.entity';
 
@@ -64,6 +68,15 @@ const MAX_FAILED_ATTEMPTS = 5;
 
 /** Lock duration (ms) after exceeding max failures. */
 const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * B3 — Sliding inactivity window.
+ *
+ * If a session's lastUsedAt (or createdAt for brand-new sessions) is older
+ * than this many days, the refresh token is rejected and the session revoked.
+ * This prevents a forgotten device from remaining authenticated indefinitely.
+ */
+const INACTIVITY_DAYS = 7;
 
 /**
  * A2 — Pre-computed dummy hash used for constant-time rejection.
@@ -86,6 +99,7 @@ export class AuthService {
     private configService: ConfigService,
     private userService: UserService,
     private emailService: EmailService,
+    private auditLogService: AuditLogService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -136,11 +150,17 @@ export class AuthService {
   /**
    * Creates a UserSession row and returns the raw (unhashed) refresh token.
    * The raw token is given to the caller once and never persisted.
+   *
+   * @param lastUsedAt  Pass `new Date()` during token rotation so the sliding
+   *                    inactivity window is anchored to the refresh, not the
+   *                    initial session creation.  Pass `null` for a brand-new
+   *                    login session (first refresh will update it).
    */
   private async createSession(
     user: User,
     ipAddress: string | null,
     deviceLabel: string | null,
+    lastUsedAt: Date | null = null,
   ): Promise<string> {
     const rawToken = randomBytes(40).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
@@ -151,7 +171,7 @@ export class AuthService {
       ipAddress,
       deviceLabel,
       expiresAt,
-      lastUsedAt: null,
+      lastUsedAt,
       revokedAt: null,
     });
 
@@ -164,8 +184,9 @@ export class AuthService {
     user: User,
     ipAddress: string | null,
     deviceLabel: string | null,
+    lastUsedAt: Date | null = null,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const rawRefresh = await this.createSession(user, ipAddress, deviceLabel);
+    const rawRefresh = await this.createSession(user, ipAddress, deviceLabel, lastUsedAt);
     const session = await this.sessionRepository.findOne({
       where: { refreshTokenHash: this.sha256Hex(rawRefresh) },
     });
@@ -217,12 +238,45 @@ export class AuthService {
 
     if (!passwordValid) {
       user.failedLoginAttempts = (user.failedLoginAttempts ?? 0) + 1;
-      if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+      const willLock = user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS;
+
+      if (willLock) {
         user.lockedUntil = new Date(Date.now() + LOCK_DURATION_MS);
         user.tokenVersion = (user.tokenVersion ?? 0) + 1;
         await this.revokeAllSessions(user.pkid);
       }
+
       await this.userRepository.save(user);
+
+      // B1 — Audit every failed credential attempt.
+      void this.auditLogService.log({
+        actorId: user.id,
+        action: 'login:failed',
+        resource: 'user',
+        resourceId: user.id,
+        ipAddress,
+        payload: { failedAttempts: user.failedLoginAttempts },
+      });
+
+      if (willLock) {
+        // B1 — Audit the account lock event separately for SIEM / alerting.
+        void this.auditLogService.log({
+          actorId: user.id,
+          action: 'account:locked',
+          resource: 'user',
+          resourceId: user.id,
+          ipAddress,
+          payload: { lockedUntil: user.lockedUntil },
+        });
+
+        // B4 — Notify the account owner so they know the lock was triggered.
+        const lockEmail: Mail = {
+          to: user.email,
+          data: { firstName: user.firstName },
+        };
+        void this.emailService.sendEmail(lockEmail, ACCOUNT_LOCKED_EMAIL_JOB);
+      }
+
       throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
@@ -307,9 +361,15 @@ export class AuthService {
   async requestPasswordReset(
     requestResetPasswordDTO: RequestResetPasswordDto,
   ): Promise<void> {
-    const user = await this.userService.getUserByEmail(
-      requestResetPasswordDTO.email,
-    );
+    // Use the repository directly (not getUserByEmail which returns UserSerializer)
+    // so we work with the raw User entity and can persist the new nonce columns.
+    // Silently return when the email is not found — do not reveal whether the
+    // address is registered (prevents account enumeration via this endpoint).
+    const user = await this.userRepository.findOne({
+      where: { email: requestResetPasswordDTO.email },
+    });
+
+    if (!user) return;
 
     const rawToken = randomBytes(32).toString('hex'); // 64-char hex nonce
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
@@ -469,6 +529,8 @@ export class AuthService {
     }
 
     if (session.revokedAt) {
+      // Reuse of a revoked token is a potential token-theft signal —
+      // revoke all sessions for this user immediately.
       await this.revokeAllSessions(session.user.pkid);
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
@@ -477,6 +539,20 @@ export class AuthService {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
 
+    // B3 — Sliding inactivity window.
+    // If no refresh has been made yet, anchor to createdAt; otherwise use
+    // the timestamp of the last successful rotation (lastUsedAt).
+    const inactivityCutoff = new Date(
+      Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const lastActivity = session.lastUsedAt ?? session.createdAt;
+    if (lastActivity < inactivityCutoff) {
+      session.revokedAt = new Date();
+      await this.sessionRepository.save(session);
+      throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
+    }
+
+    // Rotate: mark old session as consumed, mint a new one.
     session.revokedAt = new Date();
     await this.sessionRepository.save(session);
 
@@ -488,7 +564,71 @@ export class AuthService {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
 
-    return this.issueTokenPair(user, ipAddress, deviceLabel);
+    // Pass lastUsedAt = now so the sliding window resets on every rotation.
+    return this.issueTokenPair(user, ipAddress, deviceLabel, new Date());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Session management (B2)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * B2 — Returns the requesting user's active sessions, newest first.
+   *
+   * Excludes revoked and expired sessions so the client only sees sessions
+   * the user could still use.  Omits `refreshTokenHash` — clients never
+   * need the stored hash.
+   */
+  async getSessions(userId: string): Promise<
+    Array<{
+      id: string;
+      deviceLabel: string | null;
+      ipAddress: string | null;
+      lastUsedAt: Date | null;
+      createdAt: Date;
+      expiresAt: Date;
+    }>
+  > {
+    const sessions = await this.sessionRepository
+      .createQueryBuilder('s')
+      .innerJoin('s.user', 'u')
+      .where('u.id = :userId', { userId })
+      .andWhere('s.revoked_at IS NULL')
+      .andWhere('s.expires_at > NOW()')
+      .orderBy('s.created_at', 'DESC')
+      .getMany();
+
+    return sessions.map((s) => ({
+      id: s.id,
+      deviceLabel: s.deviceLabel,
+      ipAddress: s.ipAddress,
+      lastUsedAt: s.lastUsedAt,
+      createdAt: s.createdAt,
+      expiresAt: s.expiresAt,
+    }));
+  }
+
+  /**
+   * B2 — Revokes a specific session by UUID.
+   *
+   * The session must belong to the requesting user — prevents one user from
+   * revoking another user's sessions.
+   */
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const session = await this.sessionRepository
+      .createQueryBuilder('s')
+      .innerJoin('s.user', 'u')
+      .where('u.id = :userId', { userId })
+      .andWhere('s.id = :sessionId', { sessionId })
+      .andWhere('s.revoked_at IS NULL')
+      .getOne();
+
+    if (!session) {
+      throw new NotFoundException(SESSION_NOT_FOUND);
+    }
+
+    session.revokedAt = new Date();
+    await this.sessionRepository.save(session);
   }
 
   // ---------------------------------------------------------------------------

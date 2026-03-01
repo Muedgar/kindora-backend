@@ -14,6 +14,7 @@ export class PermissionsService {
   constructor(
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
+    private listFilterService: ListFilterService,
   ) {}
 
   async getPermission(id: string): Promise<Permission> {
@@ -31,12 +32,9 @@ export class PermissionsService {
   async getPermissions(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<PermissionSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.permissionRepository,
-      PermissionSerializer,
-    );
-
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.permissionRepository,
+      serializer: PermissionSerializer,
       filters,
       searchFields: ['name', 'slug'],
     });

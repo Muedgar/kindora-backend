@@ -18,6 +18,7 @@ export class ActivityService {
     private activityRepository: Repository<Activity>,
     private userService: UserService,
     private gradingLevelService: GradingLevelService,
+    private listFilterService: ListFilterService,
   ) {}
   async createActivity(
     createActivityDto: CreateActivityDto,
@@ -63,14 +64,12 @@ export class ActivityService {
   async findAll(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<ActivitySerializer>> {
-    const listFilterService = new ListFilterService(
-      this.activityRepository,
-      ActivitySerializer,
-    );
     const searchFields = ['name', 'description'];
     const options: FindManyOptions<Activity> = { relations: ['gradingLevels'] };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.activityRepository,
+      serializer: ActivitySerializer,
       filters,
       searchFields,
       options,

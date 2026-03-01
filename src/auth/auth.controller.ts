@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -12,12 +14,11 @@ import {
 import { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { ApiOperation } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
-import { LogActivity } from 'src/common/decorators/log-activity.decorator';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import {
   AUTHENTICATED,
-  FORGOT_PASSOWRD_EMAIL_SENT,
+  FORGOT_PASSWORD_EMAIL_SENT,
   INVITE_ACCEPTED,
   PASSWORD_CHANGED,
   PASSWORD_RESET,
@@ -25,6 +26,8 @@ import {
   LOGGED_OUT,
   LOGGED_OUT_ALL,
   REAUTH_SUCCESS,
+  SESSIONS_FETCHED,
+  SESSION_REVOKED,
 } from './messages';
 import {
   AcceptInviteDto,
@@ -54,6 +57,7 @@ function getDeviceLabel(req: Request): string | null {
   return ua ? ua.slice(0, 250) : null;
 }
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -88,7 +92,7 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset' })
-  @ResponseMessage(FORGOT_PASSOWRD_EMAIL_SENT)
+  @ResponseMessage(FORGOT_PASSWORD_EMAIL_SENT)
   @LogActivity({ action: 'request:password-reset', resource: 'user', includeBody: true })
   // 5 requests per minute — prevents email-bombing.
   @Throttle({ default: { ttl: 60000, limit: 5 } })
@@ -176,6 +180,39 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   logoutAll(@GetUser() user: User) {
     return this.authService.logoutAll(user);
+  }
+
+  // --------------------------------------------------------------------------
+  // Session management (B2)
+  // --------------------------------------------------------------------------
+
+  @Get('sessions')
+  @ApiOperation({
+    summary: 'List active sessions',
+    description:
+      'Returns all non-revoked, non-expired sessions for the authenticated ' +
+      'user. Each entry includes the device label, IP address, and last ' +
+      'activity timestamp so users can identify and revoke unfamiliar devices.',
+  })
+  @ResponseMessage(SESSIONS_FETCHED)
+  @UseGuards(JwtAuthGuard)
+  getSessions(@GetUser() user: User) {
+    return this.authService.getSessions(user.id);
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Revoke a specific session',
+    description:
+      'Immediately invalidates the refresh token for the given session. ' +
+      'The next rotation attempt on that device will return 401. ' +
+      'Only sessions belonging to the authenticated user can be revoked.',
+  })
+  @ResponseMessage(SESSION_REVOKED)
+  @UseGuards(JwtAuthGuard)
+  revokeSession(@GetUser() user: User, @Param('id') sessionId: string) {
+    return this.authService.revokeSession(user.id, sessionId);
   }
 
   // --------------------------------------------------------------------------
