@@ -10,6 +10,7 @@ import { BranchContextGuard, PermissionGuard } from 'src/auth/guards';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
 import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
 import { CommonModule } from 'src/common/common.module';
+import { ParentsModule } from 'src/parents/parents.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CommonModule } from 'src/common/common.module';
     ]),
     ClassroomsModule,
     SchoolsModule,
+    ParentsModule,
   ],
   controllers: [StudentsController],
   providers: [StudentsService, BranchContextGuard, PermissionGuard],

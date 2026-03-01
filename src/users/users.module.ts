@@ -12,6 +12,7 @@ import { CommonModule } from 'src/common/common.module';
 import { SchoolsModule } from 'src/schools/school.module';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
 import { SchoolMemberRole } from 'src/schools/entities/school-member-role.entity';
+import { VillageModule } from 'src/location/rwanda/village/village.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SchoolMemberRole } from 'src/schools/entities/school-member-role.entity
     RolesModule,
     CommonModule,
     SchoolsModule,
+    VillageModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('SECRET_KEY'),

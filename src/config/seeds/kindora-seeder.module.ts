@@ -10,6 +10,7 @@
  *  • No Redis, no mail, no guards — seed context only.
  */
 import { Logger, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { config as dotenvConfig } from 'dotenv';
 import { DataSourceOptions } from 'typeorm';
@@ -100,6 +101,7 @@ const dbOptions: DataSourceOptions = {
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(dbOptions),
     TypeOrmModule.forFeature(ALL_ENTITIES),
   ],

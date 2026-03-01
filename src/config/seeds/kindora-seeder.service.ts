@@ -19,7 +19,7 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 // ── Entities ──────────────────────────────────────────────────────────────
@@ -194,16 +194,48 @@ private getSeedPlainPassword(): string {
       { name: 'Manage Check-In/Out', slug: P.MANAGE_CHECKINOUT },
     ];
 
-    const saved = await this.permRepo.save(
-      definitions.map((d) => this.permRepo.create({ name: d.name, slug: d.slug })),
-    );
+    const existing = await this.permRepo.find({
+      where: [
+        { slug: In(definitions.map((d) => d.slug)) },
+        { name: In(definitions.map((d) => d.name)) },
+      ],
+    });
+
+    const existingBySlug = new Map(existing.map((perm) => [perm.slug, perm]));
+    const existingByName = new Map(existing.map((perm) => [perm.name, perm]));
+
+    const saved: Permission[] = [];
+
+    for (const definition of definitions) {
+      const bySlug = existingBySlug.get(definition.slug);
+      if (bySlug) {
+        saved.push(bySlug);
+        continue;
+      }
+
+      const byName = existingByName.get(definition.name);
+      if (byName) {
+        saved.push(byName);
+        continue;
+      }
+
+      const created = await this.permRepo.save(
+        this.permRepo.create({
+          name: definition.name,
+          slug: definition.slug,
+        }),
+      );
+      saved.push(created);
+      existingBySlug.set(created.slug, created);
+      existingByName.set(created.name, created);
+    }
 
     const map = new Map<PermSlug, Permission>();
     for (const perm of saved) {
       map.set(perm.slug as PermSlug, perm);
     }
 
-    this.logger.log(`     → ${saved.length} permissions created.`);
+    this.logger.log(`     → ${saved.length} permissions ready.`);
     return map;
   }
 
@@ -223,6 +255,16 @@ private getSeedPlainPassword(): string {
       { name: 'Parent',        slug: 'parent',        permSlugs: ROLE_PERMISSIONS.PARENT },
     ];
 
+    const existingRoles = await this.roleRepo.find({
+      where: [
+        { slug: In(roleDefinitions.map((d) => d.slug)) },
+        { name: In(roleDefinitions.map((d) => d.name)) },
+      ],
+      relations: ['permissions'],
+    });
+
+    const existingBySlug = new Map(existingRoles.map((role) => [role.slug, role]));
+    const existingByName = new Map(existingRoles.map((role) => [role.name, role]));
     const map = new Map<string, Role>();
 
     for (const def of roleDefinitions) {
@@ -232,17 +274,25 @@ private getSeedPlainPassword(): string {
         return perm;
       });
 
-      const role = this.roleRepo.create({
-        name: def.name,
-        slug: def.slug,
-        permissions,
-      });
+      let role =
+        existingBySlug.get(def.slug) ??
+        existingByName.get(def.name) ??
+        this.roleRepo.create({
+          name: def.name,
+          slug: def.slug,
+        });
 
-      const saved = await this.roleRepo.save(role);
-      map.set(def.slug, saved);
+      role.name = def.name;
+      role.slug = def.slug;
+      role.permissions = permissions;
+
+      role = await this.roleRepo.save(role);
+      map.set(def.slug, role);
+      existingBySlug.set(role.slug, role);
+      existingByName.set(role.name, role);
     }
 
-    this.logger.log(`     → ${map.size} roles created.`);
+    this.logger.log(`     → ${map.size} roles ready.`);
     return map;
   }
 

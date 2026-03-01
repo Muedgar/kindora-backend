@@ -43,6 +43,7 @@ import { AuditLogInterceptor } from './common/interceptors';
     ]),
     DevtoolsModule.register({
       http: process.env.NODE_ENV !== 'production',
+      port: Number(process.env.NEST_DEVTOOLS_PORT ?? 0),
     }),
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(dataSourceOptions as DataSourceOptions),
