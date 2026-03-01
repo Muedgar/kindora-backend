@@ -56,6 +56,7 @@ export class UserService {
     private schoolService: SchoolService,
     private villageService: VillageService,
     private jwtService: JwtService,
+    private listFilterService: ListFilterService,
   ) {}
 
   async doesUserEmailExists(email: string): Promise<void> {
@@ -82,7 +83,7 @@ export class UserService {
     await this.doesUserEmailExists(registerUserDTO.email);
 
     const password = registerUserDTO.password;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12); // A5 cost factor 12
 
     const role = await this.roleService.getRoleBySlug('super-admin');
     if (!role) throw new BadRequestException(CONTACT_ADMIN);
@@ -216,7 +217,7 @@ export class UserService {
 
     const hashedPassword = bcrypt.hashSync(
       generateRandomPassword(10),
-      bcrypt.genSaltSync(10),
+      bcrypt.genSaltSync(12), // A5 cost factor 12
     );
 
     const savedUser = await this.userRepository.manager.transaction(
@@ -357,16 +358,18 @@ export class UserService {
     filters: ListFilterDTO,
     schoolId: string,
   ): Promise<FilterResponse<UserSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.userRepository,
-      UserSerializer,
-    );
     const searchFields = ['firstName', 'lastName', 'userName', 'email'];
     const options: FindManyOptions<User> = {
       where: { schools: { school: { id: schoolId } } },
     };
 
-    return listFilterService.filter({ filters, searchFields, options });
+    return this.listFilterService.filter({
+      repository: this.userRepository,
+      serializer: UserSerializer,
+      filters,
+      searchFields,
+      options,
+    });
   }
 
   async getUserByEmail(email: string): Promise<UserSerializer> {
@@ -442,18 +445,6 @@ export class UserService {
     user.twoFactorAuthentication = false;
     const savedUser = await this.userRepository.save(user);
 
-    return plainToInstance(UserSerializer, savedUser, {
-      excludeExtraneousValues: true,
-    });
-  }
-
-  async changePassword(
-    id: string,
-    newPassword: string,
-  ): Promise<UserSerializer> {
-    const user = await this.getUser(id);
-    user.password = bcrypt.hashSync(newPassword, bcrypt.genSaltSync(10));
-    const savedUser = await this.userRepository.save(user);
     return plainToInstance(UserSerializer, savedUser, {
       excludeExtraneousValues: true,
     });

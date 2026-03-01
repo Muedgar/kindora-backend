@@ -12,9 +12,8 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
-import { LogActivity } from 'src/common/decorators/log-activity.decorator';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import {
   GUARDIAN_ADDED,
   GUARDIAN_REMOVED,
@@ -38,6 +37,7 @@ import {
 import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
 import { SchoolContext } from 'src/auth/interfaces/school-context.interface';
 
+@ApiTags('Students')
 @Controller('students')
 @UseGuards(JwtAuthGuard, BranchContextGuard, PermissionGuard)
 export class StudentsController {

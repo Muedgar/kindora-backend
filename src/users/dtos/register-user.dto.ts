@@ -30,7 +30,7 @@ export class RegisterUserDTO {
   email: string;
 
   @ApiProperty()
-  @IsStrongPassword()
+  @IsStrongPassword({ minLength: 12 })
   @IsNotEmpty()
   password: string;
 

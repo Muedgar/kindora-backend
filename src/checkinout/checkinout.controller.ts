@@ -7,10 +7,12 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CheckinoutService } from './checkinout.service';
 import { CreateCheckinoutDto } from './dto/create-checkinout.dto';
 import { UpdateCheckinoutDto } from './dto/update-checkinout.dto';
 
+@ApiTags('Check In/Out')
 @Controller('checkinout')
 export class CheckinoutController {
   constructor(private readonly checkinoutService: CheckinoutService) {}

@@ -12,6 +12,7 @@ import { SectorSerializer } from './serializers/sector.serializer';
 export class SectorService {
   constructor(
     @InjectRepository(Sector) private sectorRepository: Repository<Sector>,
+    private listFilterService: ListFilterService,
   ) {}
 
   async getSectorById(id: string): Promise<Sector> {
@@ -61,12 +62,12 @@ export class SectorService {
   async getSectors(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<SectorSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.sectorRepository,
-      SectorSerializer,
-    );
-
-    return listFilterService.filter({ filters, searchFields: ['name'] });
+    return this.listFilterService.filter({
+      repository: this.sectorRepository,
+      serializer: SectorSerializer,
+      filters,
+      searchFields: ['name'],
+    });
   }
 
   async getSectorByPkid(pkid: number): Promise<Sector> {

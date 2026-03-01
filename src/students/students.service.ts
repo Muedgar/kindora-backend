@@ -21,6 +21,7 @@ import {
   GUARDIAN_NOT_FOUND,
   STUDENT_NOT_FOUND,
 } from './messages';
+import { SCHOOL_BRANCH_NOT_FOUND } from 'src/schools/messages';
 
 @Injectable()
 export class StudentsService {
@@ -32,6 +33,7 @@ export class StudentsService {
     private parentsService: ParentsService,
     private classroomsService: ClassroomsService,
     private schoolService: SchoolService,
+    private listFilterService: ListFilterService,
   ) {}
 
   async create(
@@ -39,7 +41,7 @@ export class StudentsService {
     school: School,
   ): Promise<StudentSerializer> {
     const branch = await this.schoolService.getBranchById(createStudentDto.branchId);
-    if (!branch) throw new BadRequestException('Branch not found');
+    if (!branch) throw new BadRequestException(SCHOOL_BRANCH_NOT_FOUND);
 
     const classroom = createStudentDto.classroomId
       ? await this.classroomsService.getClassroom(createStudentDto.classroomId || '')
@@ -71,10 +73,6 @@ export class StudentsService {
     school: School,
     branchId?: string,
   ): Promise<FilterResponse<StudentSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.studentRepository,
-      StudentSerializer,
-    );
     const searchFields = ['fullName', 'dateOfBirth', 'gender'];
 
     const where: FindManyOptions<Student>['where'] = {
@@ -95,7 +93,9 @@ export class StudentsService {
       ],
     };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.studentRepository,
+      serializer: StudentSerializer,
       filters,
       searchFields,
       options,

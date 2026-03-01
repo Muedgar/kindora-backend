@@ -1,4 +1,8 @@
-export const removeKey = <T>(obj: T, keyToRemove: keyof T): T => {
-  const { [keyToRemove]: _, ...rest } = obj;
-  return rest as T;
-};
+/**
+ * @deprecated Dead file — not exported from src/utils/index.ts.
+ *
+ * The `removeKey` utility defined here was duplicated in
+ * src/utils/reusable-functions.ts, which IS exported from the barrel.
+ * This file is unreachable and can be safely deleted when the filesystem
+ * allows it.
+ */

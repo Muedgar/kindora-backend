@@ -13,6 +13,7 @@ import { SchoolService } from 'src/schools/school.service';
 import { StaffBranch } from './entities/staff-branch.entity';
 import { School } from 'src/schools/entities/school.entity';
 import { User } from 'src/users/entities';
+import { SCHOOL_BRANCH_NOT_FOUND } from 'src/schools/messages';
 
 @Injectable()
 export class StaffsService {
@@ -22,6 +23,7 @@ export class StaffsService {
     private staffBranchRepository: Repository<StaffBranch>,
     private userService: UserService,
     private schoolService: SchoolService,
+    private listFilterService: ListFilterService,
   ) {}
 
   /**
@@ -57,7 +59,7 @@ export class StaffsService {
     const branchAssignments: StaffBranch[] = [];
     for (const [index, branchId] of createStaffDto.branchIds.entries()) {
       const branch = await this.schoolService.getBranchById(branchId);
-      if (!branch) throw new BadRequestException(`Branch not found: ${branchId}`);
+      if (!branch) throw new BadRequestException(`${SCHOOL_BRANCH_NOT_FOUND}: ${branchId}`);
       if (branch.school.id !== school.id) {
         throw new BadRequestException(
           `Branch ${branchId} does not belong to your school`,
@@ -95,10 +97,6 @@ export class StaffsService {
     filters: ListFilterDTO,
     schoolId?: string,
   ): Promise<FilterResponse<StaffSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.staffRepository,
-      StaffSerializer,
-    );
     const searchFields = ['position'];
 
     const options: FindManyOptions<Staff> = {
@@ -106,7 +104,9 @@ export class StaffsService {
       relations: ['user', 'school', 'branches', 'branches.branch'],
     };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.staffRepository,
+      serializer: StaffSerializer,
       filters,
       searchFields,
       options,

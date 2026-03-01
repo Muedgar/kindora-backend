@@ -11,10 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
-import { LogActivity } from 'src/common/decorators/log-activity.decorator';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { ListFilterDTO } from 'src/common/dtos';
-import { ChangePasswordDTO, RegisterUserDTO, UpdateUserDTO } from './dtos';
+import { RegisterUserDTO, UpdateUserDTO } from './dtos';
 import { CreateUserDTO } from './dtos/create-user.dto';
 import {
   USERS_FETCHED,
@@ -155,17 +154,6 @@ export class UserController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
     return this.userService.deactivate2FA(id);
-  }
-
-  @Patch(':id/change-password')
-  @ApiOperation({ summary: 'Change user password' })
-  @ResponseMessage('Password changed successfully')
-  @UseGuards(JwtAuthGuard)
-  async changePassword(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() changePasswordDto: ChangePasswordDTO,
-  ) {
-    return this.userService.changePassword(id, changePasswordDto.password);
   }
 
   /**

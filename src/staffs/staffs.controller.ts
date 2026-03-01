@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { StaffsService } from './staffs.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/common/decorators';
 import { STAFF_CREATED, STAFFS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
@@ -17,6 +17,7 @@ import { GetSchoolContext, GetUser, RequirePermission } from 'src/auth/decorator
 import { SchoolContext } from 'src/auth/interfaces';
 import { User } from 'src/users/entities';
 
+@ApiTags('Staffs')
 @Controller('staffs')
 @UseGuards(JwtAuthGuard)
 export class StaffsController {

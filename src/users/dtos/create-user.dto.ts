@@ -32,7 +32,7 @@ export class CreateUserDTO {
   email: string;
 
   @ApiProperty({ required: false })
-  @IsStrongPassword()
+  @IsStrongPassword({ minLength: 12 })
   @IsOptional()
   password?: string;
 

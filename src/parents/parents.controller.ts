@@ -6,7 +6,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/common/decorators';
 import { PARENT_CREATED, PARENTS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
@@ -17,6 +17,7 @@ import { GetSchoolContext, GetUser, RequirePermission } from 'src/auth/decorator
 import { SchoolContext } from 'src/auth/interfaces';
 import { User } from 'src/users/entities';
 
+@ApiTags('Parents')
 @Controller('parents')
 @UseGuards(JwtAuthGuard)
 export class ParentsController {

@@ -1,39 +1,43 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-import { isAfter, isBefore } from 'date-fns';
+import { randomInt } from 'crypto';
 
-const getRandomChar = (charSet: string): string => {
-  const randomIndex = Math.floor(Math.random() * charSet.length);
-  return charSet[randomIndex];
-};
-
+/**
+ * S1 — Generates a cryptographically-secure random password of the given
+ * length.  Uses `crypto.randomInt` (CSPRNG) instead of `Math.random()` so
+ * the output is not predictable even if the RNG state is observed.
+ *
+ * Guarantees at least one character from each required class before filling
+ * the remaining positions from the full alphabet.  The final array is
+ * shuffled with a Fisher-Yates shuffle driven by `crypto.randomInt`.
+ */
 export const generateRandomPassword = (length: number): string => {
-  const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
-  const digitChars = '0123456789';
-  const specialChars = '!@#$%^&*_-+=';
+  const upper   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower   = 'abcdefghijklmnopqrstuvwxyz';
+  const digits  = '0123456789';
+  const special = '!@#$%^&*_-+=';
+  const all     = upper + lower + digits + special;
 
-  // Ensure at least one character from each character set
-  let password =
-    getRandomChar(uppercaseChars) +
-    getRandomChar(lowercaseChars) +
-    getRandomChar(digitChars) +
-    getRandomChar(specialChars);
+  const pick = (charset: string): string =>
+    charset[randomInt(charset.length)];
 
-  // Fill the remaining characters with random characters from all sets
-  const remainingLength = length - password.length;
-  const allChars = uppercaseChars + lowercaseChars + digitChars + specialChars;
-  for (let i = 0; i < remainingLength; i++) {
-    password += getRandomChar(allChars);
+  // Ensure every required character class is represented.
+  const chars: string[] = [
+    pick(upper),
+    pick(lower),
+    pick(digits),
+    pick(special),
+  ];
+
+  for (let i = chars.length; i < length; i++) {
+    chars.push(pick(all));
   }
 
-  // Shuffle the password to randomize the order of characters
-  const shuffledPassword = password
-    .split('')
-    .sort(() => Math.random() - 0.5)
-    .join('');
+  // Fisher-Yates shuffle — every permutation equally likely.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
 
-  return shuffledPassword;
+  return chars.join('');
 };
 
 export const removeKey = <T>(obj: T, keyToRemove: keyof T): T => {
@@ -41,35 +45,16 @@ export const removeKey = <T>(obj: T, keyToRemove: keyof T): T => {
   return rest as T;
 };
 
-export const sleep = (timeout: number) => {
-  return new Promise<void>((resolve) => setTimeout(resolve, timeout));
-};
+export const sleep = (timeout: number): Promise<void> =>
+  new Promise<void>((resolve) => setTimeout(resolve, timeout));
 
-export const countString = (value: string, string: string): number => {
-  return value.split(string).length - 1;
-};
+export const countString = (value: string, string: string): number =>
+  value.split(string).length - 1;
 
-export const isDateAfter = (date1: Date, date2: Date): boolean => {
-  return isAfter(date1, date2);
-};
-
-export const isDateInPast = (date: Date): boolean => {
-  const today = new Date();
-  // Remove the time part to consider only the date
-  const todayStart = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
-  return isBefore(date, todayStart);
-};
-
-export const generateNameVariations = (name: string): string[] => {
-  return [
-    name.toLowerCase(), // lowercase
-    name.toUpperCase(), // uppercase
-    name.charAt(0).toUpperCase() + name.slice(1), // Pascal case
-    name.charAt(0).toLowerCase() + name.slice(1), // camel case
-    name, // original
-  ];
-};
+export const generateNameVariations = (name: string): string[] => [
+  name.toLowerCase(),
+  name.toUpperCase(),
+  name.charAt(0).toUpperCase() + name.slice(1),
+  name.charAt(0).toLowerCase() + name.slice(1),
+  name,
+];

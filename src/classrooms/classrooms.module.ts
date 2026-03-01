@@ -8,9 +8,11 @@ import { SchoolsModule } from 'src/schools/school.module';
 import { BranchContextGuard, PermissionGuard } from 'src/auth/guards';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
 import { SchoolBranch } from 'src/schools/entities/rwanda/school-branch.entity';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
   imports: [
+    CommonModule,
     TypeOrmModule.forFeature([Classroom, SchoolMember, SchoolBranch]),
     UsersModule,
     SchoolsModule,

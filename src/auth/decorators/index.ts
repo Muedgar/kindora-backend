@@ -6,3 +6,4 @@ export * from './current-school-member.decorator';
 export * from './requires-branch-access.decorator';
 export * from './get-school-context.decorator';
 export * from './require-permission.decorator';
+export * from './require-reauth.decorator';

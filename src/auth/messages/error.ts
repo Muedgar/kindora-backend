@@ -15,3 +15,13 @@ export const MEMBERSHIP_NOT_ACTIVE = 'Your membership in this school is not acti
 export const INSUFFICIENT_PERMISSIONS = 'You do not have permission to perform this action.'
 export const INVITE_TOKEN_INVALID = 'Invalid invite token. Please contact your admin.'
 export const INVITE_TOKEN_EXPIRED = 'This invite link has expired. Please ask your admin to resend the invitation.'
+export const TOKEN_REVOKED = 'This session has been revoked. Please sign in again.'
+export const INVALID_REFRESH_TOKEN = 'Invalid or expired refresh token. Please sign in again.'
+export const ACCOUNT_TEMPORARILY_LOCKED = 'Account temporarily locked after too many failed sign-in attempts. Please try again in 15 minutes.'
+export const REAUTH_REQUIRED = 'Please re-authenticate before performing this action.'
+export const REAUTH_TOKEN_INVALID = 'Re-authentication token is invalid or has expired.'
+export const PASSWORD_RESET_TOKEN_INVALID = 'Password reset link is invalid. Please request a new one.'
+export const PASSWORD_RESET_TOKEN_USED = 'This password reset link has already been used. Please request a new one.'
+export const PASSWORD_RESET_TOKEN_EXPIRED = 'Password reset link has expired. Please request a new one.'
+/** B2 — session management error. */
+export const SESSION_NOT_FOUND = 'Session not found or already revoked.'

@@ -18,6 +18,7 @@ export class ActivityTemplateService {
     private activitiesTemplateRepository: Repository<ActivitiesTemplate>,
     private activityService: ActivityService,
     private userService: UserService,
+    private listFilterService: ListFilterService,
   ) {}
   async createActivitiesTemplate(
     createActivitiesTemplateDto: CreateActivitiesTemplateDto,
@@ -51,17 +52,15 @@ export class ActivityTemplateService {
   async findAll(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<ActivitiesTemplateSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.activitiesTemplateRepository,
-      ActivitiesTemplateSerializer,
-    );
     const searchFields = ['name'];
 
     const options: FindManyOptions<ActivitiesTemplate> = {
       relations: ['createdBy', 'activities'],
     };
 
-    return listFilterService.filter({
+    return this.listFilterService.filter({
+      repository: this.activitiesTemplateRepository,
+      serializer: ActivitiesTemplateSerializer,
       filters,
       searchFields,
       options,

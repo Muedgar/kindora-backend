@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { RolesModule } from './roles/roles.module';
@@ -31,6 +32,15 @@ import { AuditLogInterceptor } from './common/interceptors';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        // Global default: 100 requests per 60 seconds per IP.
+        // Sensitive endpoints override this with tighter per-endpoint @Throttle().
+        name: 'default',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     DevtoolsModule.register({
       http: process.env.NODE_ENV !== 'production',
     }),
@@ -88,6 +98,12 @@ import { AuditLogInterceptor } from './common/interceptors';
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      // Global rate-limiting guard — applies to every route.
+      // Individual routes can tighten or relax via @Throttle().
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditLogInterceptor,

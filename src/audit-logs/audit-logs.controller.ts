@@ -15,7 +15,7 @@ import {
   GetSchoolContext,
   RequirePermission,
 } from 'src/auth/decorators';
-import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
+import { ResponseMessage } from 'src/common/decorators';
 import { SchoolContext } from 'src/auth/interfaces/school-context.interface';
 import { AuditLogService } from 'src/common/services/audit-log.service';
 

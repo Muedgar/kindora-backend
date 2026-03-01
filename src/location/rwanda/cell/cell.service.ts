@@ -12,6 +12,7 @@ import { CellSerializer } from './serializers';
 export class CellService {
   constructor(
     @InjectRepository(Cell) private cellRepository: Repository<Cell>,
+    private listFilterService: ListFilterService,
   ) {}
 
   async getCellById(id: string): Promise<Cell> {
@@ -60,12 +61,12 @@ export class CellService {
   async getCells(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<CellSerializer>> {
-    const listFilterService = new ListFilterService(
-      this.cellRepository,
-      CellSerializer,
-    );
-
-    return listFilterService.filter({ filters, searchFields: ['name'] });
+    return this.listFilterService.filter({
+      repository: this.cellRepository,
+      serializer: CellSerializer,
+      filters,
+      searchFields: ['name'],
+    });
   }
 
   async getCellByPkid(pkid: number): Promise<Cell> {

@@ -37,6 +37,35 @@ export class User extends AppBaseEntity {
   @Column({ type: 'timestamptz', nullable: true })
   emailVerificationExpiry: Date;
 
+  /**
+   * Incremented on password change, logout-all, or account lock.
+   * Embedded in every access-token payload; a mismatch means the token
+   * was issued before the revocation event and must be rejected.
+   */
+  @Column({ type: 'integer', nullable: false, default: 0 })
+  tokenVersion: number;
+
+  /** Consecutive failed login attempts — reset to 0 on success. */
+  @Column({ type: 'integer', nullable: false, default: 0 })
+  failedLoginAttempts: number;
+
+  /** Non-null while the account is temporarily locked after too many failures. */
+  @Column({ type: 'timestamptz', nullable: true })
+  lockedUntil: Date | null;
+
+  // ── Password reset (one-time nonce) ─────────────────────────────────────────
+  /** SHA-256 hex of the raw reset nonce emailed to the user. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  passwordResetTokenHash: string | null;
+
+  /** When the nonce expires (1 hour after issuance). */
+  @Column({ type: 'timestamptz', nullable: true })
+  passwordResetTokenExpiresAt: Date | null;
+
+  /** Set to the current timestamp when the nonce is consumed, preventing reuse. */
+  @Column({ type: 'timestamptz', nullable: true })
+  passwordResetTokenUsedAt: Date | null;
+
   @OneToMany(() => SchoolMember, (schoolMember) => schoolMember.member)
   schools: SchoolMember[];
 }
