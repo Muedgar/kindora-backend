@@ -12,6 +12,7 @@ import { dataSourceOptions } from './config/db/db.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DataSourceOptions } from 'typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './users/users.module';
 import { SchoolsModule } from './schools/school.module';
 import { BullModule } from '@nestjs/bull';
@@ -29,6 +30,7 @@ import { CheckinoutModule } from './checkinout/checkinout.module';
 import { CommonModule } from './common/common.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { AuditLogInterceptor } from './common/interceptors';
+import { ParentAccessModule } from './parent-access/parent-access.module';
 
 @Module({
   imports: [
@@ -84,6 +86,7 @@ import { AuditLogInterceptor } from './common/interceptors';
     RolesModule,
     SchoolsModule,
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     PermissionsModule,
     StaffsModule,
     ParentsModule,
@@ -91,6 +94,7 @@ import { AuditLogInterceptor } from './common/interceptors';
     StudentsModule,
     AuthModule,
     ReportsModule,
+    ParentAccessModule,
     CommunicationModule,
     CheckinoutModule,
     CommonModule,

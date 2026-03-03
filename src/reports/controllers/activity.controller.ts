@@ -1,35 +1,70 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
+import { LogActivity, ResponseMessage } from 'src/common/decorators';
 import { ListFilterDTO } from 'src/common/dtos';
 import { ACTIVITY_CREATED, ACTIVITY_FETCHED } from '../messages';
-import { JwtAuthGuard } from 'src/auth/guards';
+import {
+  JwtAuthGuard,
+  PermissionGuard,
+  SchoolContextGuard,
+} from 'src/auth/guards';
+import { GetSchoolContext, GetUser, RequirePermission } from 'src/auth/decorators';
 import { User } from 'src/users/entities';
-import { GetUser } from 'src/auth/decorators';
+import { SchoolContext } from 'src/auth/interfaces/school-context.interface';
 import { ActivityService } from '../services/activity.service';
 import { CreateActivityDto } from '../dto/activity.dto';
 
-@ApiTags('Activity')
+@ApiTags('Activities')
 @Controller('activity')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SchoolContextGuard, PermissionGuard)
 export class ActivityController {
-  constructor(private activityService: ActivityService) {}
+  constructor(private readonly activityService: ActivityService) {}
 
-  @Post('create')
-  @ApiOperation({ summary: 'create a new activity' })
+  @Post()
+  @ApiOperation({ summary: 'Create a new activity for the school' })
   @ResponseMessage(ACTIVITY_CREATED)
+  @RequirePermission('write:activity')
+  @LogActivity({
+    action: 'create:activity',
+    resource: 'activity',
+    includeBody: true,
+  })
   createActivity(
-    @Body() createActivityDto: CreateActivityDto,
+    @Body() dto: CreateActivityDto,
+    @GetSchoolContext() ctx: SchoolContext,
     @GetUser() user: User,
   ) {
-    const userId = user.id;
-    return this.activityService.createActivity(createActivityDto, userId);
+    return this.activityService.createActivity(dto, ctx.school, user.id);
   }
 
-  @Get('')
-  @ApiOperation({ summary: 'Get activities' })
+  @Get()
+  @ApiOperation({ summary: 'List activities for the school (paginated)' })
   @ResponseMessage(ACTIVITY_FETCHED)
-  async getActivities(@Query() listFilerDTO: ListFilterDTO) {
-    return this.activityService.findAll(listFilerDTO);
+  @RequirePermission('read:activity')
+  findAll(
+    @Query() filters: ListFilterDTO,
+    @GetSchoolContext() ctx: SchoolContext,
+  ) {
+    return this.activityService.findAll(ctx.school, filters);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a single activity with grading levels' })
+  @ResponseMessage(ACTIVITY_FETCHED)
+  @RequirePermission('read:activity')
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetSchoolContext() ctx: SchoolContext,
+  ) {
+    return this.activityService.findOne(id, ctx.school);
   }
 }

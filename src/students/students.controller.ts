@@ -48,6 +48,7 @@ export class StudentsController {
   @RequirePermission('manage:students')
   @ApiOperation({ summary: 'Create a student' })
   @ResponseMessage(STUDENT_CREATED)
+  @LogActivity({ action: 'create:student', resource: 'student', includeBody: true })
   async createStudent(
     @Body() createStudentDto: CreateStudentDto,
     @CurrentBranch() currentBranch: SchoolBranch,

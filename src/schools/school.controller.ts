@@ -11,6 +11,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetUser, RequirePermission, RequiresBranchAccess } from 'src/auth/decorators';
 import { BranchContextGuard, JwtAuthGuard, PermissionGuard, SchoolContextGuard } from 'src/auth/guards';
 import { User } from 'src/users/entities';
+import { LogActivity } from 'src/common/decorators';
 import { AssignStaffBranchDto } from './dto/assign-staff-branch.dto';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { SetDefaultBranchDto } from './dto/set-default-branch.dto';
@@ -40,6 +41,7 @@ export class SchoolController {
   @UseGuards(SchoolContextGuard, PermissionGuard)
   @RequirePermission('manage:school')
   @ApiOperation({ summary: 'Create a new branch in a school' })
+  @LogActivity({ action: 'create:branch', resource: 'branch', includeBody: true })
   async createSchoolBranch(
     @Param('id') schoolId: string,
     @Body() dto: CreateBranchDto,
@@ -51,6 +53,7 @@ export class SchoolController {
   @UseGuards(SchoolContextGuard, PermissionGuard)
   @RequirePermission('manage:school')
   @ApiOperation({ summary: 'Update branch details' })
+  @LogActivity({ action: 'update:branch', resource: 'branch', includeBody: true })
   async updateSchoolBranch(
     @Param('id') schoolId: string,
     @Param('bId') branchId: string,
@@ -72,6 +75,7 @@ export class SchoolController {
 
   @Patch('me/schools/:id/default-branch')
   @ApiOperation({ summary: 'Set current user default branch for school' })
+  @LogActivity({ action: 'update:default-branch', resource: 'branch', includeBody: true })
   async setDefaultBranch(
     @Param('id') schoolId: string,
     @Body() dto: SetDefaultBranchDto,
@@ -94,6 +98,7 @@ export class SchoolController {
   @RequiresBranchAccess()
   @RequirePermission('manage:school')
   @ApiOperation({ summary: 'Assign staff to branch' })
+  @LogActivity({ action: 'assign:staff-branch', resource: 'branch', includeBody: true })
   async assignStaffToBranch(
     @Param('bId') branchId: string,
     @Body() dto: AssignStaffBranchDto,
