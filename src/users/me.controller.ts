@@ -11,7 +11,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards';
 import { GetUser } from 'src/auth/decorators';
-import { ResponseMessage } from 'src/common/decorators';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { User } from './entities';
 import { MeService } from './me.service';
 import { ME_FETCHED, MY_SCHOOLS_FETCHED, SCHOOL_SELECTED } from './messages';
@@ -62,6 +62,7 @@ export class MeController {
   @ApiOperation({ summary: 'Switch active school' })
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(SCHOOL_SELECTED)
+  @LogActivity({ action: 'select:school', resource: 'school' })
   async selectSchool(
     @GetUser() user: User,
     @Param('schoolId', new ParseUUIDPipe({ version: '4' })) schoolId: string,

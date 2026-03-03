@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { ListFilterDTO } from 'src/common/dtos';
 import { GradingLevelService } from '../services/grading-level.service';
 import { GRADING_LEVEL_CREATED, GRADING_LEVELS_FETCHED } from '../messages';
@@ -18,6 +18,7 @@ export class GradingLevelController {
   @Post('create')
   @ApiOperation({ summary: 'create a new grading level' })
   @ResponseMessage(GRADING_LEVEL_CREATED)
+  @LogActivity({ action: 'create:grading-level', resource: 'grading-level', includeBody: true })
   createGradingLevel(
     @Body() createGradingLevelDto: CreateGradingLevelDto,
     @GetUser() user: User,

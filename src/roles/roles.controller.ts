@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { ListFilterDTO } from 'src/common/dtos';
 import { UpdateRoleDTO } from './dtos';
 import { CreateRoleDTO } from './dtos/create-role.dto';
@@ -38,6 +38,7 @@ export class RoleController {
   @Post('create')
   @ApiOperation({ summary: 'create a new role' })
   @ResponseMessage(ROLE_CREATED)
+  @LogActivity({ action: 'create:role', resource: 'role', includeBody: true })
   @RequirePermission('manage:school')
   async createRole(@Body() createRoleDTO: CreateRoleDTO) {
     return this.roleService.createRole(createRoleDTO);
@@ -63,6 +64,7 @@ export class RoleController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update role' })
   @ResponseMessage(ROLE_UPDATED)
+  @LogActivity({ action: 'update:role', resource: 'role', includeBody: true })
   @RequirePermission('manage:school')
   async updateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -74,6 +76,7 @@ export class RoleController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete role' })
   @ResponseMessage(ROLE_DELETED)
+  @LogActivity({ action: 'delete:role', resource: 'role' })
   @RequirePermission('manage:school')
   async deleteRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -84,6 +87,7 @@ export class RoleController {
   @Patch(':id/activate')
   @ApiOperation({ summary: 'Activate role' })
   @ResponseMessage(ROLE_ACTIVATED)
+  @LogActivity({ action: 'activate:role', resource: 'role' })
   @RequirePermission('manage:school')
   async activateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -94,6 +98,7 @@ export class RoleController {
   @Patch(':id/deactivate')
   @ApiOperation({ summary: 'Deactivate role' })
   @ResponseMessage(ROLE_DEACTIVATED)
+  @LogActivity({ action: 'deactivate:role', resource: 'role' })
   @RequirePermission('manage:school')
   async deactivateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

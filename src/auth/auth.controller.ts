@@ -80,6 +80,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validate OTP' })
   @ResponseMessage(AUTHENTICATED)
+  @LogActivity({ action: 'validate:otp', resource: 'user' })
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   validateOtp(@Body() otpDTO: OtpDTO, @Req() req: Request) {
     return this.authService.validateOTP(otpDTO, getIp(req), getDeviceLabel(req));
@@ -106,6 +107,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password' })
   @ResponseMessage(PASSWORD_RESET)
+  @LogActivity({ action: 'reset:password', resource: 'user' })
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   resetPassword(
     @Param('token') token: string,
@@ -117,6 +119,7 @@ export class AuthController {
   @Patch('change-password')
   @ApiOperation({ summary: 'Change password' })
   @ResponseMessage(PASSWORD_CHANGED)
+  @LogActivity({ action: 'change:password', resource: 'user' })
   // JwtAuthGuard authenticates; ReauthGuard requires a fresh X-Reauth-Token
   // (from POST /auth/reauth) so a stolen access token alone cannot change the
   // account password.
@@ -168,6 +171,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Sign out of the current device' })
   @ResponseMessage(LOGGED_OUT)
+  @LogActivity({ action: 'logout', resource: 'session' })
   @UseGuards(JwtAuthGuard)
   logout(@Body() dto: LogoutDto) {
     return this.authService.logout(dto);
@@ -177,6 +181,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Sign out of all devices' })
   @ResponseMessage(LOGGED_OUT_ALL)
+  @LogActivity({ action: 'logout:all', resource: 'session' })
   @UseGuards(JwtAuthGuard)
   logoutAll(@GetUser() user: User) {
     return this.authService.logoutAll(user);
@@ -210,6 +215,7 @@ export class AuthController {
       'Only sessions belonging to the authenticated user can be revoked.',
   })
   @ResponseMessage(SESSION_REVOKED)
+  @LogActivity({ action: 'revoke:session', resource: 'session' })
   @UseGuards(JwtAuthGuard)
   revokeSession(@GetUser() user: User, @Param('id') sessionId: string) {
     return this.authService.revokeSession(user.id, sessionId);

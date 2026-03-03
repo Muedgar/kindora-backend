@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { CLASSROOM_CREATED, CLASSROOMS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
 import { ClassroomsService } from './classrooms.service';
@@ -22,6 +22,7 @@ export class ClassroomsController {
   @RequirePermission('manage:classrooms')
   @ApiOperation({ summary: 'Create a classroom' })
   @ResponseMessage(CLASSROOM_CREATED)
+  @LogActivity({ action: 'create:classroom', resource: 'classroom', includeBody: true })
   async createClassroom(
     @Body() createClassroomDto: CreateClassroomDto,
     @GetUser() user: User,

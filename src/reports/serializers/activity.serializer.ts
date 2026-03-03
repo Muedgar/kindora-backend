@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { BaseSerializer } from 'src/common/serializers';
-import { UserSerializer } from 'src/users/serializers';
 import { GradingLevelSerializer } from './grading-level.serializer';
+import { EGradingType, GradingConfig } from '../enums/grading-type.enum';
 
 export class ActivitySerializer extends BaseSerializer {
   @Expose()
@@ -11,10 +11,12 @@ export class ActivitySerializer extends BaseSerializer {
   description: string;
 
   @Expose()
-  @Type(() => GradingLevelSerializer)
-  gradingLevels: GradingLevelSerializer[];
+  gradingType: EGradingType;
 
   @Expose()
-  @Type(() => UserSerializer)
-  createdBy: UserSerializer;
+  gradingConfig: GradingConfig;
+
+  @Expose()
+  @Type(() => GradingLevelSerializer)
+  gradingLevels: GradingLevelSerializer[];
 }

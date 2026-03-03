@@ -9,7 +9,7 @@ import {
 import { StaffsService } from './staffs.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { STAFF_CREATED, STAFFS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
 import { JwtAuthGuard, PermissionGuard, SchoolContextGuard } from 'src/auth/guards';
@@ -26,6 +26,7 @@ export class StaffsController {
   @Post('create')
   @ApiOperation({ summary: 'Create a staff member' })
   @ResponseMessage(STAFF_CREATED)
+  @LogActivity({ action: 'create:staff', resource: 'staff', includeBody: true })
   @UseGuards(SchoolContextGuard, PermissionGuard)
   @RequirePermission('manage:users')
   async createUser(

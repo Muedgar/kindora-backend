@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { ListFilterDTO } from 'src/common/dtos';
 import { TEMPLATE_CREATED, TEMPLATE_FETCHED } from '../messages';
 import { JwtAuthGuard, PermissionGuard, SchoolContextGuard } from 'src/auth/guards';
@@ -18,6 +18,7 @@ export class ActivitiesTemplateController {
   @Post('create')
   @ApiOperation({ summary: 'create a new activity template' })
   @ResponseMessage(TEMPLATE_CREATED)
+  @LogActivity({ action: 'create:activity-template', resource: 'activity-template', includeBody: true })
   @RequirePermission('write:lesson')
   createActivitiesTemplate(
     @Body() createActivityTemplateDto: CreateActivitiesTemplateDto,

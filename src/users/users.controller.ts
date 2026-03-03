@@ -119,6 +119,7 @@ export class UserController {
   @ApiOperation({ summary: 'Activate user' })
   @ResponseMessage(USER_ACTIVATED)
   @UseGuards(JwtAuthGuard)
+  @LogActivity({ action: 'activate:user', resource: 'user' })
   async activateUser(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
@@ -140,6 +141,7 @@ export class UserController {
   @ApiOperation({ summary: 'Activate two factor authentication' })
   @ResponseMessage(USER_2FA_ACTIVATED)
   @UseGuards(JwtAuthGuard)
+  @LogActivity({ action: 'activate:2fa', resource: 'user' })
   async activate2FA(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
@@ -150,6 +152,7 @@ export class UserController {
   @ApiOperation({ summary: 'Deactivate two factor authentication' })
   @ResponseMessage(USER_2FA_DEACTIVATED)
   @UseGuards(JwtAuthGuard)
+  @LogActivity({ action: 'deactivate:2fa', resource: 'user' })
   async deactivate2FA(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {

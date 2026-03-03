@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/common/decorators';
+import { ResponseMessage, LogActivity } from 'src/common/decorators';
 import { PARENT_CREATED, PARENTS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
 import { ParentsService } from './parents.service';
@@ -26,6 +26,7 @@ export class ParentsController {
   @Post('create')
   @ApiOperation({ summary: 'Create a parent' })
   @ResponseMessage(PARENT_CREATED)
+  @LogActivity({ action: 'create:parent', resource: 'parent', includeBody: true })
   @UseGuards(SchoolContextGuard, PermissionGuard)
   @RequirePermission('manage:users')
   async createParent(
