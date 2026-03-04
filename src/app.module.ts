@@ -31,6 +31,7 @@ import { CommonModule } from './common/common.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { AuditLogInterceptor } from './common/interceptors';
 import { ParentAccessModule } from './parent-access/parent-access.module';
+import { LocationModule } from './location/location.module';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { ParentAccessModule } from './parent-access/parent-access.module';
     AuthModule,
     ReportsModule,
     ParentAccessModule,
+    LocationModule,
     CommunicationModule,
     CheckinoutModule,
     CommonModule,
