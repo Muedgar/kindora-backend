@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable, Logger } from '@nestjs/common';
-import { Queue } from 'bull';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Job, Queue } from 'bull';
 
 import { ConfigService } from '@nestjs/config';
 import { MAIL_QUEUE } from '../constants';
@@ -16,8 +16,8 @@ export class EmailService {
     private configService: ConfigService,
   ) {}
 
-  async sendEmail(data: Mail, jobName: string) {
-    data = {
+  private withMailDefaults(data: Mail): Mail {
+    return {
       ...data,
       data: {
         ...data.data,
@@ -25,19 +25,68 @@ export class EmailService {
         clientUrl: this.configService.get('CLIENT_URL'),
       },
     };
+  }
 
-    const sendMailEnv = this.configService.get<string>('SEND_MAIL');
-    const shouldSend = ['true', '1', 'yes', 'on'].includes(
-      String(sendMailEnv).toLowerCase(),
+  private isSendMailEnabled(): { enabled: boolean; raw: string | undefined } {
+    const raw = this.configService.get<string>('SEND_MAIL');
+    const enabled = ['true', '1', 'yes', 'on'].includes(
+      String(raw).toLowerCase(),
     );
+    return { enabled, raw };
+  }
 
-    if (shouldSend) {
+  private async waitForCompletion(job: Job, timeoutMs: number): Promise<void> {
+    await Promise.race([
+      job.finished().then(() => undefined),
+      new Promise<void>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Mail job ${job.id} timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        ),
+      ),
+    ]);
+  }
+
+  async sendEmail(data: Mail, jobName: string) {
+    data = this.withMailDefaults(data);
+    const { enabled, raw } = this.isSendMailEnabled();
+
+    if (enabled) {
       const job = await this.mailQueue.add(jobName, data);
       return { jobId: job.id };
     }
 
     this.logger.warn(
-      `Email dispatch skipped because SEND_MAIL=${sendMailEnv ?? 'undefined'}`,
+      `Email dispatch skipped because SEND_MAIL=${raw ?? 'undefined'}`,
     );
+  }
+
+  async sendEmailStrict(
+    data: Mail,
+    jobName: string,
+    timeoutMs = 15000,
+  ): Promise<{ jobId: string | number }> {
+    data = this.withMailDefaults(data);
+    const { enabled, raw } = this.isSendMailEnabled();
+
+    if (!enabled) {
+      throw new ServiceUnavailableException(
+        `Email dispatch disabled (SEND_MAIL=${raw ?? 'undefined'}).`,
+      );
+    }
+
+    const job = await this.mailQueue.add(jobName, data);
+    try {
+      await this.waitForCompletion(job, timeoutMs);
+      return { jobId: job.id };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Email job ${job.id} (${jobName}) failed for ${data.to}: ${message}`,
+      );
+      throw new ServiceUnavailableException(
+        `Email dispatch failed for ${data.to}.`,
+      );
+    }
   }
 }
