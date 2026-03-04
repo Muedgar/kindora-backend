@@ -42,6 +42,7 @@ import {
   SNAPSHOT_RETRIEVED,
   SNAPSHOT_REVIEWED,
   SNAPSHOT_PUBLISHED,
+  SNAPSHOT_SENT,
   ADMIN_SUMMARY_FETCHED,
 } from '../messages/success';
 
@@ -206,5 +207,19 @@ export class ReportSnapshotController {
     @GetUser() user: User,
   ) {
     return this.snapshotService.publish(id, user, ctx.school);
+  }
+
+  @Patch(':id/send')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send a published snapshot to parent inbox channels.' })
+  @ResponseMessage(SNAPSHOT_SENT)
+  @RequirePermission('publish:report-snapshot')
+  @LogActivity({ action: 'send:report-snapshot', resource: 'report-snapshot' })
+  send(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetSchoolContext() ctx: SchoolContext,
+    @GetUser() user: User,
+  ) {
+    return this.snapshotService.send(id, user, ctx.school);
   }
 }

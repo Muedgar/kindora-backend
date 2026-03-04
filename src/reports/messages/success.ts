@@ -24,6 +24,7 @@ export const SNAPSHOTS_FETCHED = 'Report snapshots fetched successfully';
 export const SNAPSHOT_RETRIEVED = 'Report snapshot retrieved successfully';
 export const SNAPSHOT_REVIEWED = 'Report snapshot marked as reviewed';
 export const SNAPSHOT_PUBLISHED = 'Report snapshot published to parents';
+export const SNAPSHOT_SENT = 'Report snapshot sent to parent inbox';
 export const ADMIN_SUMMARY_FETCHED = 'Admin weekly summary fetched successfully';
 
 // daily report

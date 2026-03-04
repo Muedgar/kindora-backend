@@ -38,6 +38,7 @@ export class Phase1011TokenSecurity1772640000000 implements MigrationInterface {
       CREATE TABLE IF NOT EXISTS "user_sessions" (
         "pkid"               SERIAL        PRIMARY KEY,
         "id"                 UUID          NOT NULL UNIQUE DEFAULT uuid_generate_v4(),
+        "version"            INTEGER       NOT NULL DEFAULT 1,
         "user_id"            INTEGER       NOT NULL
                                REFERENCES "users"("pkid") ON DELETE CASCADE,
         "refreshTokenHash"   VARCHAR(64)   NOT NULL UNIQUE,

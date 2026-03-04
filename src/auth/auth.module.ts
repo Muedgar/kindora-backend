@@ -11,6 +11,7 @@ import { JwtStrategy } from './strategies';
 import { ReauthGuard } from './guards';
 import { CommonModule } from 'src/common/common.module';
 import { UserSession } from './entities/user-session.entity';
+import { CommunicationModule } from 'src/communication/communication.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { UserSession } from './entities/user-session.entity';
     TypeOrmModule.forFeature([User, SchoolMember, UserSession]),
     UsersModule,
     CommonModule,
+    CommunicationModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, ReauthGuard],

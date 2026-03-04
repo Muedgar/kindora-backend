@@ -92,6 +92,8 @@ export class DailyReportService {
       rawValue: dto.rawValue,
       normalisedScore,
       comments: dto.comments,
+      mediaId: dto.mediaId,
+      mediaPreviewUrl: dto.mediaPreviewUrl,
       user,
     });
 
@@ -340,6 +342,10 @@ export class DailyReportService {
     }
 
     if (dto.comments !== undefined) report.comments = dto.comments;
+    if (dto.mediaId !== undefined) report.mediaId = dto.mediaId;
+    if (dto.mediaPreviewUrl !== undefined) {
+      report.mediaPreviewUrl = dto.mediaPreviewUrl;
+    }
     if (dto.visibleToParents !== undefined) {
       report.visibleToParents = dto.visibleToParents;
     }
@@ -476,6 +482,8 @@ export class DailyReportService {
     rawValue: string;
     normalisedScore: number;
     comments?: string;
+    mediaId?: string;
+    mediaPreviewUrl?: string;
     user: User;
     repo?: Repository<DailyReport>;
   }): Promise<DailyReport> {
@@ -494,6 +502,10 @@ export class DailyReportService {
       existing.rawValue = params.rawValue;
       existing.normalisedScore = params.normalisedScore;
       if (params.comments !== undefined) existing.comments = params.comments;
+      if (params.mediaId !== undefined) existing.mediaId = params.mediaId;
+      if (params.mediaPreviewUrl !== undefined) {
+        existing.mediaPreviewUrl = params.mediaPreviewUrl;
+      }
       existing.updatedBy = params.user;
       return repo.save(existing);
     }
@@ -506,6 +518,8 @@ export class DailyReportService {
       rawValue: params.rawValue,
       normalisedScore: params.normalisedScore,
       comments: params.comments,
+      mediaId: params.mediaId,
+      mediaPreviewUrl: params.mediaPreviewUrl,
       createdBy: params.user,
     });
 
@@ -549,6 +563,8 @@ export class DailyReportService {
         rawValue: obs.rawValue,
         normalisedScore,
         comments: obs.comments,
+        mediaId: obs.mediaId,
+        mediaPreviewUrl: obs.mediaPreviewUrl,
         user,
         repo,
       });

@@ -24,12 +24,13 @@ import { SnapshotActivityItem } from './snapshot-activity-item.entity';
  *   TERMLY  — School-defined term dates. Triggered manually by admin/teacher,
  *              or optionally scheduled.
  *
- * Lifecycle:  DRAFT  →  PENDING_REVIEW  →  PUBLISHED
+ * Lifecycle:  DRAFT  →  PENDING_REVIEW  →  PUBLISHED  →  SENT
  *
  *   DRAFT           System generates automatically; teacher hasn't reviewed.
  *   PENDING_REVIEW  Teacher has added notes and marked it ready. (Optional
  *                   step — small schools can skip straight to PUBLISHED.)
  *   PUBLISHED       Parents/guardians can see it via the parent mobile app.
+ *   SENT            Distribution event processed for parent inbox/push.
  *
  * Design notes:
  *   • A PUBLISHED snapshot is never re-generated — any correction requires
@@ -117,6 +118,10 @@ export class ReportSnapshot extends AppBaseEntity {
   /** Timestamp when status was set to PUBLISHED. */
   @Column({ type: 'timestamptz', nullable: true })
   publishedAt: Date;
+
+  /** Timestamp when status was moved to SENT. */
+  @Column({ type: 'timestamptz', nullable: true })
+  sentAt: Date;
 
   // ── Provenance ────────────────────────────────────────────────────────────
 

@@ -33,6 +33,12 @@ export class DailyReportSerializer extends BaseSerializer {
   comments: string;
 
   @Expose()
+  mediaId: string | null;
+
+  @Expose()
+  mediaPreviewUrl: string | null;
+
+  @Expose()
   @Type(() => ActivitySerializer)
   activity: ActivitySerializer;
 

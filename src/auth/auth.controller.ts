@@ -35,14 +35,17 @@ import {
   LoginDto,
   LogoutDto,
   OtpDTO,
+  RegisterDeviceTokenDto,
   ReauthDto,
   RefreshTokenDto,
+  RemoveDeviceTokenDto,
   RequestResetPasswordDto,
   ResetPasswordDto,
 } from './dto';
-import { JwtAuthGuard, ReauthGuard } from './guards';
-import { GetUser } from './decorators';
+import { JwtAuthGuard, ReauthGuard, SchoolContextGuard } from './guards';
+import { GetSchoolContext, GetUser } from './decorators';
 import { User } from 'src/users/entities';
+import { SchoolContext } from './interfaces/school-context.interface';
 
 /** Extract the client IP, respecting X-Forwarded-For in proxy environments. */
 function getIp(req: Request): string | null {
@@ -234,6 +237,30 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   reauth(@GetUser() user: User, @Body() dto: ReauthDto) {
     return this.authService.reauth(user, dto);
+  }
+
+  @Post('device-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Register a mobile device token for push notifications' })
+  @UseGuards(JwtAuthGuard, SchoolContextGuard)
+  registerDeviceToken(
+    @GetUser() user: User,
+    @GetSchoolContext() ctx: SchoolContext,
+    @Body() dto: RegisterDeviceTokenDto,
+  ) {
+    return this.authService.registerDeviceToken(user, ctx.school, dto);
+  }
+
+  @Delete('device-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove one (or all) device tokens for current user' })
+  @UseGuards(JwtAuthGuard, SchoolContextGuard)
+  removeDeviceToken(
+    @GetUser() user: User,
+    @GetSchoolContext() ctx: SchoolContext,
+    @Body() dto: RemoveDeviceTokenDto,
+  ) {
+    return this.authService.removeDeviceToken(user, ctx.school, dto);
   }
 }
 

@@ -24,8 +24,9 @@ export class DashboardCacheInvalidatorService {
   }
 
   private async invalidate(studentId: string): Promise<void> {
-    const key = this.cache.makeKey(studentId);
-    await this.cache.del(key);
-    this.logger.debug(`Invalidated dashboard cache for student ${studentId}`);
+    await this.cache.invalidateStudent(studentId);
+    this.logger.debug(
+      `Invalidated all dashboard cache variants for student ${studentId}`,
+    );
   }
 }

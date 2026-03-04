@@ -85,7 +85,7 @@ export class UserService {
     const password = registerUserDTO.password;
     const hashedPassword = await bcrypt.hash(password, 12); // A5 cost factor 12
 
-    const role = await this.roleService.getRoleBySlug('super-admin');
+    const role = await this.roleService.getRoleBySlug('super_admin');
     if (!role) throw new BadRequestException(CONTACT_ADMIN);
 
     const returnedUser = await this.userRepository.manager.transaction(

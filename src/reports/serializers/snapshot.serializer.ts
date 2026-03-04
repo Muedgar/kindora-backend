@@ -129,6 +129,9 @@ export class ReportSnapshotSerializer extends BaseSerializer {
   @Expose()
   publishedAt: Date | null;
 
+  @Expose()
+  sentAt: Date | null;
+
   // Activity breakdown
   @Expose()
   @Type(() => SnapshotActivityItemSerializer)

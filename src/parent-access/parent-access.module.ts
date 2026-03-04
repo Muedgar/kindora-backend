@@ -9,6 +9,7 @@ import { DailyReport } from 'src/reports/entities/daily-report.entity';
 import { ReportSnapshot } from 'src/reports/entities/report-snapshot.entity';
 import { SnapshotActivityItem } from 'src/reports/entities/snapshot-activity-item.entity';
 import { CommunicationModule } from 'src/communication/communication.module';
+import { SchoolMember } from 'src/schools/entities/school-member.entity';
 import { ParentChildrenController } from './controllers/parent-children.controller';
 import { ParentTimelineController } from './controllers/parent-timeline.controller';
 import { ParentReportsController } from './controllers/parent-reports.controller';
@@ -30,6 +31,7 @@ import { ParentNotificationsService } from './services/parent-notifications.serv
       DailyReport,
       ReportSnapshot,
       SnapshotActivityItem,
+      SchoolMember,
     ]),
     ParentsModule,
     ReportsModule,

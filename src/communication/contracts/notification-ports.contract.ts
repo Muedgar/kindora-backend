@@ -2,6 +2,7 @@ export const NOTIFICATION_DISPATCH_PORT = 'NOTIFICATION_DISPATCH_PORT';
 export const NOTIFICATION_INBOX_PORT = 'NOTIFICATION_INBOX_PORT';
 
 export interface NotificationDispatchRequest {
+  schoolId: string;
   userId: string;
   type: 'NEW_REPORT' | 'GOAL_MILESTONE' | 'SCHOOL_ANNOUNCEMENT';
   title: string;
@@ -27,6 +28,7 @@ export interface NotificationDispatchPort {
 export interface NotificationInboxPort {
   listForParent(
     userId: string,
+    schoolId: string,
     page: number,
     limit: number,
     isRead?: boolean,
@@ -39,6 +41,10 @@ export interface NotificationInboxPort {
     nextPage: number | null;
     limit: number;
   }>;
-  markRead(userId: string, notificationId: string): Promise<{ id: string; isRead: true }>;
-  markAllRead(userId: string): Promise<{ updated: number }>;
+  markRead(
+    userId: string,
+    schoolId: string,
+    notificationId: string,
+  ): Promise<{ id: string; isRead: true }>;
+  markAllRead(userId: string, schoolId: string): Promise<{ updated: number }>;
 }

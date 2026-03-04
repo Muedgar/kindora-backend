@@ -5,6 +5,7 @@ import { StudentTrendsFilterDto } from 'src/reports/dto/snapshot.dto';
 import { ReportSnapshot } from 'src/reports/entities/report-snapshot.entity';
 import { SnapshotActivityItem } from 'src/reports/entities/snapshot-activity-item.entity';
 import { ESnapshotStatus, ETrend } from 'src/reports/enums/snapshot.enum';
+import { groupSnapshotItemsBySnapshotPkid } from 'src/reports/utils/group-snapshot-items-by-snapshot.util';
 import { School } from 'src/schools/entities/school.entity';
 import { User } from 'src/users/entities';
 import { Repository } from 'typeorm';
@@ -29,12 +30,22 @@ export class ParentDashboardService {
     school: School,
     user: User,
   ): Promise<ParentDashboardResponseDto> {
-    const cacheKey = this.cache.makeKey(studentId);
-    const cached = await this.cache.get<ParentDashboardResponseDto>(cacheKey);
-    if (cached) return cached;
+    const cacheType = filters.type ?? 'ALL';
+    const cacheWeeks = filters.weeks ?? 12;
+    const cacheKey = this.cache.makeKey(studentId, cacheType, cacheWeeks);
+    try {
+      const cached = await this.cache.get<ParentDashboardResponseDto>(cacheKey);
+      if (cached) return cached;
+    } catch {
+      // Keep parent dashboard functional even if Redis has transient issues.
+    }
 
     const live = await this.computeLiveDashboard(studentId, filters, school, user);
-    await this.cache.set(cacheKey, live, 3600);
+    try {
+      await this.cache.set(cacheKey, live, 3600);
+    } catch {
+      // No-op: live response is still returned on cache write errors.
+    }
     return live;
   }
 
@@ -48,7 +59,14 @@ export class ParentDashboardService {
       where: { user: { pkid: user.pkid }, school: { pkid: school.pkid } },
     });
     if (!parent) {
-      return { overall: null, areas: [], activities: [], lastUpdated: new Date().toISOString() };
+      return {
+        overall: null,
+        overallScore: null,
+        areas: [],
+        learningAreas: [],
+        activities: [],
+        lastUpdated: new Date().toISOString(),
+      };
     }
 
     const qb = this.snapshotRepository
@@ -79,45 +97,50 @@ export class ParentDashboardService {
 
     const snapshots = await qb.getMany();
     if (!snapshots.length) {
-      return { overall: null, areas: [], activities: [], lastUpdated: new Date().toISOString() };
+      return {
+        overall: null,
+        overallScore: null,
+        areas: [],
+        learningAreas: [],
+        activities: [],
+        lastUpdated: new Date().toISOString(),
+      };
     }
 
     const snapshotPkids = snapshots.map((s) => s.pkid);
     const items = await this.itemRepository
       .createQueryBuilder('item')
       .innerJoinAndSelect('item.activity', 'activity')
+      .innerJoinAndSelect('item.snapshot', 'snapshot')
       .where('item.snapshot_id IN (:...snapshotPkids)', { snapshotPkids })
       .getMany();
 
     const latest = snapshots[snapshots.length - 1];
     const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
 
-    const itemsBySnapshotPkid = new Map<number, SnapshotActivityItem[]>();
-    for (const item of items) {
-      const sid = (item as unknown as { snapshot_id: number }).snapshot_id;
-      const bucket = itemsBySnapshotPkid.get(sid) ?? [];
-      bucket.push(item);
-      itemsBySnapshotPkid.set(sid, bucket);
-    }
+    const itemsBySnapshotPkid = groupSnapshotItemsBySnapshotPkid(items);
 
     const latestItems = itemsBySnapshotPkid.get(latest.pkid) ?? [];
     const previousItems = previous ? itemsBySnapshotPkid.get(previous.pkid) ?? [] : [];
 
     const areaScoresNow = this.groupAreaScores(latestItems);
     const areaScoresPrev = this.groupAreaScores(previousItems);
-    const areas = Array.from(areaScoresNow.entries()).map(([areaName, score]) => {
-      const prev = areaScoresPrev.get(areaName) ?? null;
-      return {
-        areaName,
-        score,
-        trend: this.computeTrend(score, prev),
-        color: this.colorFrom(areaName),
-      };
-    });
+    const learningAreas = Array.from(areaScoresNow.entries()).map(
+      ([areaName, value]) => {
+        const prev = areaScoresPrev.get(areaName)?.score ?? null;
+        return {
+          areaId: value.id,
+          areaName,
+          score: value.score,
+          trend: this.computeTrend(value.score, prev),
+          color: this.colorFrom(areaName),
+        };
+      },
+    );
 
     const activitySeries = new Map<
       string,
-      { activityId: string; activityName: string; areaName: string | null; series: number[] }
+      { activityId: string; name: string; areaName: string | null; series: number[] }
     >();
     const recentSnapshots = snapshots.slice(-8);
     for (const snap of recentSnapshots) {
@@ -126,7 +149,7 @@ export class ParentDashboardService {
         const key = it.activity.id;
         const row = activitySeries.get(key) ?? {
           activityId: it.activity.id,
-          activityName: it.activity.name,
+          name: it.activity.name,
           areaName: it.learningAreaName ?? null,
           series: [],
         };
@@ -141,7 +164,8 @@ export class ParentDashboardService {
       const prev = series.length > 1 ? series[series.length - 2] : null;
       return {
         activityId: a.activityId,
-        activityName: a.activityName,
+        activityName: a.name,
+        name: a.name,
         areaName: a.areaName,
         averageScore: last,
         trend: this.computeTrend(last, prev),
@@ -149,27 +173,42 @@ export class ParentDashboardService {
       };
     });
 
+    const overallScore =
+      latest.overallScore != null ? Number(latest.overallScore) : null;
     return {
-      overall: latest.overallScore != null ? Number(latest.overallScore) : null,
-      areas,
+      overall: overallScore,
+      overallScore,
+      areas: learningAreas,
+      learningAreas,
       activities,
       lastUpdated: (latest.publishedAt ?? latest.updatedAt).toISOString(),
     };
   }
 
-  private groupAreaScores(items: SnapshotActivityItem[]): Map<string, number | null> {
-    const map = new Map<string, number[]>();
+  private groupAreaScores(
+    items: SnapshotActivityItem[],
+  ): Map<string, { id: string | null; score: number | null }> {
+    const map = new Map<string, { id: string | null; values: number[] }>();
     for (const it of items) {
       const key = it.learningAreaName ?? 'Uncategorised';
-      const arr = map.get(key) ?? [];
-      if (it.averageScore != null) arr.push(Number(it.averageScore));
-      map.set(key, arr);
+      const bucket = map.get(key) ?? {
+        id: null,
+        values: [],
+      };
+      if (it.averageScore != null) bucket.values.push(Number(it.averageScore));
+      map.set(key, bucket);
     }
 
-    const out = new Map<string, number | null>();
-    for (const [k, values] of map.entries()) {
-      if (!values.length) out.set(k, null);
-      else out.set(k, values.reduce((a, b) => a + b, 0) / values.length);
+    const out = new Map<string, { id: string | null; score: number | null }>();
+    for (const [k, bucket] of map.entries()) {
+      if (!bucket.values.length) out.set(k, { id: bucket.id, score: null });
+      else {
+        out.set(k, {
+          id: bucket.id,
+          score:
+            bucket.values.reduce((a, b) => a + b, 0) / bucket.values.length,
+        });
+      }
     }
     return out;
   }
