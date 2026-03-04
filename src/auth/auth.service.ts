@@ -44,6 +44,7 @@ import { UserSerializer } from 'src/users/serializers';
 import {
   INVALID_CREDENTIALS,
   INVALID_CURRENT_PASSWORD,
+  USER_NOT_FOUND,
 } from 'src/users/messages';
 import { JwtPayload } from './interfaces';
 import { RequestUser } from './types';
@@ -368,13 +369,14 @@ export class AuthService {
   ): Promise<void> {
     // Use the repository directly (not getUserByEmail which returns UserSerializer)
     // so we work with the raw User entity and can persist the new nonce columns.
-    // Silently return when the email is not found — do not reveal whether the
-    // address is registered (prevents account enumeration via this endpoint).
+    // Product requirement: return an error when the email does not exist.
     const user = await this.userRepository.findOne({
       where: { email: requestResetPasswordDTO.email },
     });
 
-    if (!user) return;
+    if (!user) {
+      throw new NotFoundException(USER_NOT_FOUND);
+    }
 
     const rawToken = randomBytes(32).toString('hex'); // 64-char hex nonce
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
@@ -390,7 +392,10 @@ export class AuthService {
       data: { firstName: user.firstName, token: rawToken },
     };
 
-    await this.emailService.sendEmail(emailData, RESET_PASSWORD_EMAIL_JOB);
+    await this.emailService.sendEmailStrict(
+      emailData,
+      RESET_PASSWORD_EMAIL_JOB,
+    );
   }
 
   /**
