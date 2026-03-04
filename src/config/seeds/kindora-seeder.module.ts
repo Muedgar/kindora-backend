@@ -49,6 +49,7 @@ import { Activity } from 'src/reports/entities/activity.entity';
 import { ActivitiesTemplate } from 'src/reports/entities/activity-template.entity';
 import { GradingLevel } from 'src/reports/entities/grading-level.entity';
 import { DailyReport } from 'src/reports/entities/daily-report.entity';
+import { LearningArea } from 'src/reports/entities/learning-area.entity';
 
 // ── Seeder Service ────────────────────────────────────────────────────────
 import { KindoraSeederService } from './kindora-seeder.service';
@@ -82,6 +83,7 @@ const ALL_ENTITIES = [
   // Reports (schema only)
   Category,
   Activity,
+  LearningArea,
   ActivitiesTemplate,
   GradingLevel,
   DailyReport,

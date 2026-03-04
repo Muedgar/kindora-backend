@@ -9,9 +9,9 @@ export class Phase4ParentAccessPermissions1773169200000
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      INSERT INTO "permissions" ("name", "slug", "description")
+      INSERT INTO "permissions" ("name", "slug")
       VALUES
-        ('Read Notifications', 'read:notifications', 'Read parent notification inbox')
+        ('Read Notifications', 'read:notifications')
       ON CONFLICT ("slug") DO NOTHING
     `);
 

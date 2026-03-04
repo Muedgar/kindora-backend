@@ -25,13 +25,16 @@ import {
   SESSION_NOT_FOUND,
 } from './messages';
 import { SchoolMember } from 'src/schools/entities/school-member.entity';
+import { School } from 'src/schools/entities/school.entity';
 import { ESchoolMemberStatus } from 'src/schools/enums';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes, randomInt, createHash } from 'crypto';
 import {
   ChangePasswordDto,
+  RegisterDeviceTokenDto,
   LoginDto,
   OtpDTO,
+  RemoveDeviceTokenDto,
   RequestResetPasswordDto,
   ResetPasswordDto,
   LogoutDto,
@@ -54,6 +57,7 @@ import {
   ACCOUNT_LOCKED_EMAIL_JOB,
 } from 'src/common/constants';
 import { UserSession } from './entities/user-session.entity';
+import { NotificationFacadeService } from 'src/communication/services/notification-facade.service';
 
 // ── Module-level constants ────────────────────────────────────────────────────
 
@@ -100,6 +104,7 @@ export class AuthService {
     private userService: UserService,
     private emailService: EmailService,
     private auditLogService: AuditLogService,
+    private notificationFacadeService: NotificationFacadeService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -657,6 +662,42 @@ export class AuthService {
       await this.userRepository.save(user);
       await this.revokeAllSessions(user.pkid);
     }
+  }
+
+  async registerDeviceToken(
+    reqUser: RequestUser,
+    school: School,
+    dto: RegisterDeviceTokenDto,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: reqUser.id },
+    });
+    if (!user) throw new UnauthorizedException(INVALID_CREDENTIALS);
+
+    await this.notificationFacadeService.registerDeviceToken({
+      user,
+      school,
+      token: dto.token,
+      platform: dto.platform,
+      provider: dto.provider,
+    });
+  }
+
+  async removeDeviceToken(
+    reqUser: RequestUser,
+    school: School,
+    dto: RemoveDeviceTokenDto,
+  ): Promise<{ removed: number }> {
+    const user = await this.userRepository.findOne({
+      where: { id: reqUser.id },
+    });
+    if (!user) throw new UnauthorizedException(INVALID_CREDENTIALS);
+
+    return this.notificationFacadeService.deregisterDeviceToken({
+      user,
+      school,
+      token: dto.token,
+    });
   }
 
   // ---------------------------------------------------------------------------

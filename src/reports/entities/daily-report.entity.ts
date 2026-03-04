@@ -63,6 +63,12 @@ export class DailyReport extends AppBaseEntity {
   @Column({ type: 'varchar', length: 500, nullable: true })
   comments: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  mediaId: string | null;
+
+  @Column({ type: 'varchar', length: 2048, nullable: true })
+  mediaPreviewUrl: string | null;
+
   /**
    * Controls whether this observation appears in the parent timeline feed.
    *

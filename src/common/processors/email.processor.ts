@@ -3,6 +3,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 
 import { MailerService } from '@nestjs-modules/mailer';
+import { Logger } from '@nestjs/common';
 import {
   INVITE_EMAIL_JOB,
   MAIL_QUEUE,
@@ -15,27 +16,32 @@ import { Mail } from '../interfaces';
 
 @Processor(MAIL_QUEUE)
 export class EmailProcessor {
+  private readonly logger = new Logger(EmailProcessor.name);
+
   constructor(private mailService: MailerService) {}
 
   @Process(REGISTER_EMAIL_JOB)
   async sendRegisterEmail(job: Job<Mail>) {
     const { data } = job;
 
-    await this.mailService
-      .sendMail({
+    try {
+      await this.mailService.sendMail({
         ...data,
         subject: 'New Account',
         template: 'register-email',
         context: {
           data: data.data,
         },
-      })
-      .then(() => {
-        console.log('email send successfully');
-      })
-      .catch((e) => {
-        console.log(e);
       });
+      this.logger.log(`Register email sent to ${data.to}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send register email to ${data.to}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw error;
+    }
   }
 
   @Process(RESET_PASSWORD_EMAIL_JOB)

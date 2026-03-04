@@ -41,6 +41,15 @@ export class CreateDailyReportDto {
   @IsString()
   @MaxLength(500)
   comments?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  mediaId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  mediaPreviewUrl?: string;
 }
 
 /** Patch DTO — rawValue, comments, and parent visibility can be changed. */
@@ -64,6 +73,15 @@ export class UpdateDailyReportDto {
   @IsOptional()
   @IsBoolean()
   visibleToParents?: boolean;
+
+  @IsOptional()
+  @IsUUID('4')
+  mediaId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  mediaPreviewUrl?: string;
 }
 
 /**
@@ -82,6 +100,15 @@ export class BatchObservationItemDto {
   @IsString()
   @MaxLength(500)
   comments?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  mediaId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  mediaPreviewUrl?: string;
 }
 
 /**

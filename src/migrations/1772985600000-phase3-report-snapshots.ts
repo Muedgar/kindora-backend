@@ -119,19 +119,19 @@ export class Phase3ReportSnapshots1772985600000 implements MigrationInterface {
 
     // ── Permissions ──────────────────────────────────────────────────────────
     await queryRunner.query(`
-      INSERT INTO "permissions" ("name", "slug", "description")
+      INSERT INTO "permissions" ("name", "slug")
       VALUES
-        ('Read Report Snapshot',    'read:report-snapshot',    'View generated report snapshots'),
-        ('Write Report Snapshot',   'write:report-snapshot',   'Generate and review report snapshots'),
-        ('Publish Report Snapshot', 'publish:report-snapshot', 'Publish snapshots to parents/guardians')
+        ('Read Report Snapshot',    'read:report-snapshot'),
+        ('Write Report Snapshot',   'write:report-snapshot'),
+        ('Publish Report Snapshot', 'publish:report-snapshot')
       ON CONFLICT ("slug") DO NOTHING
     `);
 
     // ── Role grants ──────────────────────────────────────────────────────────
     // school-admin: full access
     await queryRunner.query(`
-      INSERT INTO "role_permissions" ("roleId", "permissionId")
-      SELECT r.id, p.id
+      INSERT INTO "role_permissions" ("rolesPkid", "permissionsPkid")
+      SELECT r."pkid", p."pkid"
       FROM "roles" r, "permissions" p
       WHERE r.slug = 'school-admin'
         AND p.slug IN (
@@ -144,8 +144,8 @@ export class Phase3ReportSnapshots1772985600000 implements MigrationInterface {
 
     // teacher: generate + review, but NOT publish
     await queryRunner.query(`
-      INSERT INTO "role_permissions" ("roleId", "permissionId")
-      SELECT r.id, p.id
+      INSERT INTO "role_permissions" ("rolesPkid", "permissionsPkid")
+      SELECT r."pkid", p."pkid"
       FROM "roles" r, "permissions" p
       WHERE r.slug = 'teacher'
         AND p.slug IN (
@@ -157,8 +157,8 @@ export class Phase3ReportSnapshots1772985600000 implements MigrationInterface {
 
     // parent: read only — guardian-scoping enforced at the service layer
     await queryRunner.query(`
-      INSERT INTO "role_permissions" ("roleId", "permissionId")
-      SELECT r.id, p.id
+      INSERT INTO "role_permissions" ("rolesPkid", "permissionsPkid")
+      SELECT r."pkid", p."pkid"
       FROM "roles" r, "permissions" p
       WHERE r.slug = 'parent'
         AND p.slug IN ('read:report-snapshot')
@@ -170,8 +170,8 @@ export class Phase3ReportSnapshots1772985600000 implements MigrationInterface {
     // Remove role–permission links
     await queryRunner.query(`
       DELETE FROM "role_permissions"
-      WHERE "permissionId" IN (
-        SELECT id FROM "permissions"
+      WHERE "permissionsPkid" IN (
+        SELECT "pkid" FROM "permissions"
         WHERE slug IN (
           'read:report-snapshot',
           'write:report-snapshot',

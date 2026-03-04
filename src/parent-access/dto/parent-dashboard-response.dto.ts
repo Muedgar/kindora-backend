@@ -2,6 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ETrend } from 'src/reports/enums/snapshot.enum';
 
 export class ParentDashboardAreaDto {
+  @ApiProperty({ nullable: true })
+  areaId: string | null;
+
   @ApiProperty()
   areaName: string;
 
@@ -19,8 +22,11 @@ export class ParentDashboardActivityDto {
   @ApiProperty()
   activityId: string;
 
-  @ApiProperty()
+  @ApiProperty({ deprecated: true })
   activityName: string;
+
+  @ApiProperty()
+  name: string;
 
   @ApiProperty({ nullable: true })
   areaName: string | null;
@@ -36,11 +42,17 @@ export class ParentDashboardActivityDto {
 }
 
 export class ParentDashboardResponseDto {
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ nullable: true, deprecated: true })
   overall: number | null;
 
-  @ApiProperty({ type: [ParentDashboardAreaDto] })
+  @ApiProperty({ nullable: true })
+  overallScore: number | null;
+
+  @ApiProperty({ type: [ParentDashboardAreaDto], deprecated: true })
   areas: ParentDashboardAreaDto[];
+
+  @ApiProperty({ type: [ParentDashboardAreaDto] })
+  learningAreas: ParentDashboardAreaDto[];
 
   @ApiProperty({ type: [ParentDashboardActivityDto] })
   activities: ParentDashboardActivityDto[];

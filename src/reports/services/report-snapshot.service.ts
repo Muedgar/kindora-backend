@@ -44,10 +44,10 @@ import {
 } from '../serializers/snapshot.serializer';
 import {
   SNAPSHOT_NOT_FOUND,
-  SNAPSHOT_ALREADY_PUBLISHED,
 } from '../messages/error';
 import { NOT_CHILDS_GUARDIAN } from '../messages/error';
 import { scoreToBand } from '../enums/snapshot.enum';
+import { groupSnapshotItemsBySnapshotPkid } from '../utils/group-snapshot-items-by-snapshot.util';
 import {
   SNAPSHOT_PUBLISHED_EVENT,
   SNAPSHOT_SENT_EVENT,
@@ -59,6 +59,18 @@ import {
 @Injectable()
 export class ReportSnapshotService {
   private readonly logger = new Logger(ReportSnapshotService.name);
+  private static readonly SNAPSHOT_TRANSITIONS: Record<
+    ESnapshotStatus,
+    ESnapshotStatus[]
+  > = {
+    [ESnapshotStatus.DRAFT]: [
+      ESnapshotStatus.PENDING_REVIEW,
+      ESnapshotStatus.PUBLISHED,
+    ],
+    [ESnapshotStatus.PENDING_REVIEW]: [ESnapshotStatus.PUBLISHED],
+    [ESnapshotStatus.PUBLISHED]: [ESnapshotStatus.SENT],
+    [ESnapshotStatus.SENT]: [],
+  };
 
   constructor(
     @InjectRepository(ReportSnapshot)
@@ -427,18 +439,11 @@ export class ReportSnapshotService {
     const items = await this.itemRepository
       .createQueryBuilder('item')
       .innerJoinAndSelect('item.activity', 'activity')
+      .innerJoinAndSelect('item.snapshot', 'snapshot')
       .where('item.snapshot_id IN (:...pkids)', { pkids: snapshotPkids })
       .getMany();
 
-    const itemsBySnapshot = new Map<number, typeof items>();
-    for (const item of items) {
-      // item.snapshot is not loaded, but snapshot_id FK is on pkid
-      // We need to group by snapshot pkid — use raw query for this
-      const snapPkid = (item as unknown as { snapshot_id: number }).snapshot_id;
-      const bucket = itemsBySnapshot.get(snapPkid) ?? [];
-      bucket.push(item);
-      itemsBySnapshot.set(snapPkid, bucket);
-    }
+    const itemsBySnapshot = groupSnapshotItemsBySnapshotPkid(items);
 
     return snapshots.map((snap) => {
       const snapItems = itemsBySnapshot.get(snap.pkid) ?? [];
@@ -493,11 +498,10 @@ export class ReportSnapshotService {
   ): Promise<ReportSnapshotSerializer> {
     const snapshot = await this.findSnapshotOrFail(id, school);
 
-    if (snapshot.status === ESnapshotStatus.PUBLISHED) {
-      throw new BadRequestException(
-        'Cannot edit a published snapshot. Publish a new one instead.',
-      );
-    }
+    this.assertValidTransition(
+      snapshot.status as ESnapshotStatus,
+      ESnapshotStatus.PENDING_REVIEW,
+    );
 
     snapshot.teacherNotes = dto.teacherNotes;
     snapshot.reviewedBy = reviewer;
@@ -520,9 +524,10 @@ export class ReportSnapshotService {
   ): Promise<ReportSnapshotSerializer> {
     const snapshot = await this.findSnapshotOrFail(id, school, ['student']);
 
-    if (snapshot.status === ESnapshotStatus.PUBLISHED) {
-      throw new BadRequestException('Snapshot is already published.');
-    }
+    this.assertValidTransition(
+      snapshot.status as ESnapshotStatus,
+      ESnapshotStatus.PUBLISHED,
+    );
 
     snapshot.status = ESnapshotStatus.PUBLISHED;
     snapshot.publishedAt = new Date();
@@ -540,6 +545,37 @@ export class ReportSnapshotService {
       periodEnd: String(snapshot.periodEnd),
     };
     this.eventEmitter.emit(SNAPSHOT_PUBLISHED_EVENT, payload);
+
+    return this.serializeLite(saved, false);
+  }
+
+  async send(
+    id: string,
+    sender: User,
+    school: School,
+  ): Promise<ReportSnapshotSerializer> {
+    const snapshot = await this.findSnapshotOrFail(id, school, ['student']);
+
+    this.assertValidTransition(
+      snapshot.status as ESnapshotStatus,
+      ESnapshotStatus.SENT,
+    );
+
+    snapshot.status = ESnapshotStatus.SENT;
+    snapshot.sentAt = new Date();
+    snapshot.updatedBy = sender;
+
+    const saved = await this.snapshotRepository.save(snapshot);
+
+    const payload: SnapshotPublishedPayload = {
+      snapshotId: saved.id,
+      studentId: snapshot.student.id,
+      schoolId: school.id,
+      studentName: snapshot.student.fullName,
+      periodStart: String(snapshot.periodStart),
+      periodEnd: String(snapshot.periodEnd),
+    };
+    this.eventEmitter.emit(SNAPSHOT_SENT_EVENT, payload);
 
     return this.serializeLite(saved, false);
   }
@@ -682,8 +718,15 @@ export class ReportSnapshotService {
       },
     });
 
-    if (existing?.status === ESnapshotStatus.PUBLISHED) {
-      throw new ConflictException(SNAPSHOT_ALREADY_PUBLISHED);
+    if (
+      existing &&
+      [ESnapshotStatus.PUBLISHED, ESnapshotStatus.SENT].includes(
+        existing.status as ESnapshotStatus,
+      )
+    ) {
+      throw new ConflictException(
+        `Cannot regenerate snapshot in ${existing.status} state.`,
+      );
     }
 
     const aggregations = await this.aggregationService.aggregateStudentPeriod(
@@ -881,5 +924,18 @@ export class ReportSnapshotService {
     if (value === null || value === undefined) return null;
     const n = parseFloat(value as string);
     return isFinite(n) ? n : null;
+  }
+
+  private assertValidTransition(
+    from: ESnapshotStatus,
+    to: ESnapshotStatus,
+  ): void {
+    const allowed = ReportSnapshotService.SNAPSHOT_TRANSITIONS[from] ?? [];
+    if (allowed.includes(to)) return;
+
+    const allowedLabel = allowed.length ? allowed.join(', ') : 'none';
+    throw new BadRequestException(
+      `Invalid snapshot transition from ${from} to ${to}. Allowed next states: ${allowedLabel}.`,
+    );
   }
 }
