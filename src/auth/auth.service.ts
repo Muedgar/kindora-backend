@@ -208,7 +208,7 @@ export class AuthService {
       .update(UserSession)
       .set({ revokedAt: new Date() })
       .where('user_id = :userPkid', { userPkid })
-      .andWhere('revoked_at IS NULL')
+      .andWhere('"revokedAt" IS NULL')
       .execute();
   }
 
@@ -603,9 +603,9 @@ export class AuthService {
       .createQueryBuilder('s')
       .innerJoin('s.user', 'u')
       .where('u.id = :userId', { userId })
-      .andWhere('s.revoked_at IS NULL')
-      .andWhere('s.expires_at > NOW()')
-      .orderBy('s.created_at', 'DESC')
+      .andWhere('s."revokedAt" IS NULL')
+      .andWhere('s."expiresAt" > NOW()')
+      .orderBy('s."createdAt"', 'DESC')
       .getMany();
 
     return sessions.map((s) => ({
@@ -630,7 +630,7 @@ export class AuthService {
       .innerJoin('s.user', 'u')
       .where('u.id = :userId', { userId })
       .andWhere('s.id = :sessionId', { sessionId })
-      .andWhere('s.revoked_at IS NULL')
+      .andWhere('s."revokedAt" IS NULL')
       .getOne();
 
     if (!session) {

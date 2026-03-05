@@ -33,6 +33,12 @@ import { AuditLogInterceptor } from './common/interceptors';
 import { ParentAccessModule } from './parent-access/parent-access.module';
 import { LocationModule } from './location/location.module';
 
+
+const templatesDir =
+  process.env.NODE_ENV === 'production'
+    ? join(process.cwd(), 'dist', 'templates')
+    : join(process.cwd(), 'src', 'templates');
+
 @Module({
   imports: [
     ThrottlerModule.forRoot([
@@ -74,7 +80,7 @@ import { LocationModule } from './location/location.module';
           from: configService.get('MAIL_FROM_EMAIL'),
         },
         template: {
-          dir: join(__dirname, 'templates'),
+          dir: templatesDir,
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,
