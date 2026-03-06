@@ -212,6 +212,28 @@ export class AuthService {
       .execute();
   }
 
+  /**
+   * Resolve the user's primary active school for client-side X-School-Id.
+   * Priority: explicit default, then most recently selected, then oldest
+   * active membership as a stable fallback.
+   */
+  private async resolvePrimarySchoolId(userId: string): Promise<string | null> {
+    const member = await this.schoolMemberRepository.findOne({
+      where: {
+        member: { id: userId },
+        status: ESchoolMemberStatus.ACTIVE,
+      },
+      relations: ['school'],
+      order: {
+        isDefault: 'DESC',
+        lastSelectedAt: 'DESC',
+        createdAt: 'ASC',
+      },
+    });
+
+    return member?.school?.id ?? null;
+  }
+
   // ---------------------------------------------------------------------------
   // Auth flows
   // ---------------------------------------------------------------------------
@@ -225,6 +247,7 @@ export class AuthService {
     refreshToken?: string;
     user?: UserSerializer | { email: string };
     requiresOtp?: boolean;
+    schoolId?: string | null;
   }> {
     const { email, password } = loginDTO;
     const user = await this.userRepository.findOne({ where: { email } });
@@ -320,14 +343,26 @@ export class AuthService {
       ipAddress,
       deviceLabel,
     );
-    return { accessToken, refreshToken, user: new UserSerializer(user) };
+    const schoolId = await this.resolvePrimarySchoolId(user.id);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: new UserSerializer(user),
+      schoolId,
+    };
   }
 
   async validateOTP(
     otpDto: OtpDTO,
     ipAddress: string | null,
     deviceLabel: string | null,
-  ): Promise<{ accessToken: string; refreshToken: string; user: UserSerializer }> {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: UserSerializer;
+    schoolId: string | null;
+  }> {
     const { email, otp } = otpDto;
     const user = await this.userRepository.findOne({ where: { email } });
 
@@ -353,7 +388,9 @@ export class AuthService {
       ipAddress,
       deviceLabel,
     );
-    return { accessToken, refreshToken, user: new UserSerializer(user) };
+    const schoolId = await this.resolvePrimarySchoolId(user.id);
+
+    return { accessToken, refreshToken, user: new UserSerializer(user), schoolId };
   }
 
   /**

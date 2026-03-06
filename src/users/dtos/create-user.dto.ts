@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsEmail,
@@ -44,6 +45,31 @@ export class CreateUserDTO {
 
   @ApiProperty({ required: false, type: [String] })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (Array.isArray(value)) return value;
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return Array.isArray(parsed) ? parsed : [trimmed];
+        } catch {
+          return [trimmed];
+        }
+      }
+
+      if (trimmed.includes(',')) {
+        return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+      }
+
+      return [trimmed];
+    }
+
+    return value;
+  })
   @IsArray()
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
