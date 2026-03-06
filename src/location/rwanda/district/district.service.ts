@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ListFilterDTO } from 'src/common/dtos';
 import { FilterResponse } from 'src/common/interfaces';
 import { ListFilterService } from 'src/common/services';
-import { Repository } from 'typeorm';
+import { FindManyOptions, Repository } from 'typeorm';
 import { District } from './district.entity';
 import { DISTRICTS_NOT_FOUND, DISTRICT_NOT_FOUND } from './messages';
 import { DistrictSerializer } from './serializers';
@@ -86,11 +86,16 @@ export class DistrictService {
   async getDistricts(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<DistrictSerializer>> {
+    const options: FindManyOptions<District> = {
+      relations: ['province'],
+    };
+
     return this.listFilterService.filter({
       repository: this.districtRepository,
       serializer: DistrictSerializer,
       filters,
       searchFields: ['name'],
+      options,
     });
   }
 }

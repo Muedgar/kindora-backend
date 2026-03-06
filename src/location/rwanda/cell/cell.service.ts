@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ListFilterDTO } from 'src/common/dtos';
 import { FilterResponse } from 'src/common/interfaces';
 import { ListFilterService } from 'src/common/services';
-import { Repository } from 'typeorm';
+import { FindManyOptions, Repository } from 'typeorm';
 import { Cell } from './cell.entity';
 import { CELLS_NOT_FOUND, CELL_NOT_FOUND } from './messages';
 import { CellSerializer } from './serializers';
@@ -61,11 +61,16 @@ export class CellService {
   async getCells(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<CellSerializer>> {
+    const options: FindManyOptions<Cell> = {
+      relations: ['sector', 'sector.district', 'sector.district.province'],
+    };
+
     return this.listFilterService.filter({
       repository: this.cellRepository,
       serializer: CellSerializer,
       filters,
       searchFields: ['name'],
+      options,
     });
   }
 

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ListFilterDTO } from 'src/common/dtos';
 import { FilterResponse } from 'src/common/interfaces';
 import { ListFilterService } from 'src/common/services';
-import { Repository } from 'typeorm';
+import { FindManyOptions, Repository } from 'typeorm';
 import { SECTORS_NOT_FOUND, SECTOR_NOT_FOUND } from './messages';
 import { Sector } from './sector.entity';
 import { SectorSerializer } from './serializers/sector.serializer';
@@ -62,11 +62,16 @@ export class SectorService {
   async getSectors(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<SectorSerializer>> {
+    const options: FindManyOptions<Sector> = {
+      relations: ['district', 'district.province'],
+    };
+
     return this.listFilterService.filter({
       repository: this.sectorRepository,
       serializer: SectorSerializer,
       filters,
       searchFields: ['name'],
+      options,
     });
   }
 
