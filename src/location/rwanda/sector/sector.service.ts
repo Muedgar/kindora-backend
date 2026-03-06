@@ -50,6 +50,7 @@ export class SectorService {
   async getSectorsByDistrictId(id: string): Promise<Sector[]> {
     const sectors = await this.sectorRepository.find({
       where: { district: { id } },
+      relations: ['district', 'district.province'],
     });
 
     if (!sectors || sectors.length === 0) {
