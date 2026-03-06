@@ -26,12 +26,12 @@ export class SchoolController {
 
   /**
    * List all branches for a school.
-   * Requires manage:school — school admins and super admins only.
+   * Requires manage:schools — school admins and super admins only.
    * X-School-Id header must match the :id path param.
    */
   @Get('schools/:id/branches')
   @UseGuards(SchoolContextGuard, PermissionGuard)
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   @ApiOperation({ summary: 'List all branches for a school' })
   async getSchoolBranches(@Param('id') schoolId: string) {
     return this.schoolService.getBranchesBySchool(schoolId);
@@ -39,7 +39,7 @@ export class SchoolController {
 
   @Post('schools/:id/branches')
   @UseGuards(SchoolContextGuard, PermissionGuard)
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   @ApiOperation({ summary: 'Create a new branch in a school' })
   @LogActivity({ action: 'create:branch', resource: 'branch', includeBody: true })
   async createSchoolBranch(
@@ -51,7 +51,7 @@ export class SchoolController {
 
   @Patch('schools/:id/branches/:bId')
   @UseGuards(SchoolContextGuard, PermissionGuard)
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   @ApiOperation({ summary: 'Update branch details' })
   @LogActivity({ action: 'update:branch', resource: 'branch', includeBody: true })
   async updateSchoolBranch(
@@ -87,7 +87,7 @@ export class SchoolController {
   @Get('branches/:bId/staff')
   @UseGuards(BranchContextGuard, PermissionGuard)
   @RequiresBranchAccess()
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   @ApiOperation({ summary: 'List staff assigned to a branch' })
   async getBranchStaff(@Param('bId') branchId: string) {
     return this.schoolService.listBranchStaff(branchId);
@@ -96,7 +96,7 @@ export class SchoolController {
   @Post('branches/:bId/staff')
   @UseGuards(BranchContextGuard, PermissionGuard)
   @RequiresBranchAccess()
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   @ApiOperation({ summary: 'Assign staff to branch' })
   @LogActivity({ action: 'assign:staff-branch', resource: 'branch', includeBody: true })
   async assignStaffToBranch(
