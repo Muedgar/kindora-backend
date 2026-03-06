@@ -71,11 +71,21 @@ export class VillageService {
   async getVillages(
     filters: ListFilterDTO,
   ): Promise<FilterResponse<VillageSerializer>> {
+    const options: FindManyOptions<Village> = {
+      relations: [
+        'cell',
+        'cell.sector',
+        'cell.sector.district',
+        'cell.sector.district.province',
+      ],
+    };
+
     return this.listFilterService.filter({
       repository: this.villageRepository,
       serializer: VillageSerializer,
       filters,
       searchFields: ['name'],
+      options,
     });
   }
 
