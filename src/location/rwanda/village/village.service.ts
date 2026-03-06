@@ -57,7 +57,12 @@ export class VillageService {
 
   async getVillagesByCellId(id: string): Promise<Village[]> {
     const villages = await this.villageRepository.find({
-      relations: ['cell'],
+      relations: [
+        'cell',
+        'cell.sector',
+        'cell.sector.district',
+        'cell.sector.district.province',
+      ],
       where: { cell: { id } },
     });
 
@@ -93,7 +98,12 @@ export class VillageService {
     filters: ListFilterDTO,
   ): Promise<FilterResponse<VillageWithRelationsSerializer>> {
     const options: FindManyOptions<Village> = {
-      relations: ['cell', 'cell.sector', 'cell.sector.district'],
+      relations: [
+        'cell',
+        'cell.sector',
+        'cell.sector.district',
+        'cell.sector.district.province',
+      ],
     };
 
     return this.listFilterService.filter({

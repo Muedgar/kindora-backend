@@ -50,6 +50,7 @@ export class CellService {
   async getCellsBySectorId(id: string): Promise<Cell[]> {
     const cells = await this.cellRepository.find({
       where: { sector: { id } },
+      relations: ['sector', 'sector.district', 'sector.district.province'],
     });
     if (!cells || cells.length === 0) {
       throw new NotFoundException(`${CELLS_NOT_FOUND} ${id}`);

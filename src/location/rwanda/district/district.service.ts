@@ -61,6 +61,7 @@ export class DistrictService {
   async getDistrictsByProvinceId(id: string): Promise<District[]> {
     const districts = await this.districtRepository.find({
       where: { province: { id } },
+      relations: ['province'],
     });
 
     if (!districts || districts.length === 0) {
