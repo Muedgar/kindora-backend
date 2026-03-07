@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ListFilterDTO } from 'src/common/dtos';
 import { FilterResponse } from 'src/common/interfaces';
 import { ListFilterService } from 'src/common/services';
+import { plainToInstance } from 'class-transformer';
 import { FindManyOptions, Not, Repository } from 'typeorm';
 import { Cell } from '../cell/cell.entity';
 import { VILLAGES_NOT_FOUND, VILLAGE_NOT_FOUND } from './messages';
@@ -52,7 +53,9 @@ export class VillageService {
       throw new NotFoundException(VILLAGE_NOT_FOUND);
     }
 
-    return new VillageWithRelationsSerializer(village);
+    return plainToInstance(VillageWithRelationsSerializer, village, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async getVillagesByCellId(id: string): Promise<Village[]> {

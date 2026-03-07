@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { ResponseMessage } from 'src/common/decorators';
 import { DistrictService } from 'src/location/rwanda/district/district.service';
 import { DISTRICTS_FETCHED } from 'src/location/rwanda/district/messages';
@@ -31,7 +32,9 @@ export class ProvinceController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
     const province = await this.provinceService.getProvince(id);
-    return new ProvinceSerializer(province);
+    return plainToInstance(ProvinceSerializer, province, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get(':id/districts')
@@ -42,14 +45,8 @@ export class ProvinceController {
   ) {
     const foundDistricts =
       await this.districtService.getDistrictsByProvinceId(id);
-
-    const districts: DistrictSerializer[] = [];
-    if (foundDistricts.length > 0) {
-      foundDistricts.forEach((district) =>
-        districts.push(new DistrictSerializer(district)),
-      );
-    }
-
-    return districts;
+    return plainToInstance(DistrictSerializer, foundDistricts, {
+      excludeExtraneousValues: true,
+    });
   }
 }

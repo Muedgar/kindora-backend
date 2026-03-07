@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { ResponseMessage } from 'src/common/decorators';
 import { ListFilterDTO } from 'src/common/dtos';
 import { CellService } from './cell.service';
@@ -29,7 +30,9 @@ export class CellController {
   @ResponseMessage(CELL_FETCHED)
   async geCell(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     const cell = await this.cellService.getCell(id);
-    return new CellSerializer(cell);
+    return plainToInstance(CellSerializer, cell, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get(':id/villages')
@@ -39,14 +42,8 @@ export class CellController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
     const foundVillages = await this.villageService.getVillagesByCellId(id);
-
-    const villages: VillageSerializer[] = [];
-    if (foundVillages.length > 0) {
-      foundVillages.forEach((sector) =>
-        villages.push(new VillageSerializer(sector)),
-      );
-    }
-
-    return villages;
+    return plainToInstance(VillageSerializer, foundVillages, {
+      excludeExtraneousValues: true,
+    });
   }
 }
