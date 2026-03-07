@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { ResponseMessage } from 'src/common/decorators';
 import { ListFilterDTO } from 'src/common/dtos';
 import { SECTORS_FETCHED } from 'src/location/rwanda/sector/messages';
@@ -31,7 +32,9 @@ export class DistrictController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
     const district = await this.districtService.getDistrict(id);
-    return new DistrictSerializer(district);
+    return plainToInstance(DistrictSerializer, district, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get(':id/sectors')
@@ -41,14 +44,8 @@ export class DistrictController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
     const foundSectors = await this.sectorService.getSectorsByDistrictId(id);
-
-    const sectors: SectorSerializer[] = [];
-    if (foundSectors.length > 0) {
-      foundSectors.forEach((sector) =>
-        sectors.push(new SectorSerializer(sector)),
-      );
-    }
-
-    return sectors;
+    return plainToInstance(SectorSerializer, foundSectors, {
+      excludeExtraneousValues: true,
+    });
   }
 }
