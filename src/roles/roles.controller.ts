@@ -39,7 +39,7 @@ export class RoleController {
   @ApiOperation({ summary: 'create a new role' })
   @ResponseMessage(ROLE_CREATED)
   @LogActivity({ action: 'create:role', resource: 'role', includeBody: true })
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   async createRole(@Body() createRoleDTO: CreateRoleDTO) {
     return this.roleService.createRole(createRoleDTO);
   }
@@ -65,7 +65,7 @@ export class RoleController {
   @ApiOperation({ summary: 'Update role' })
   @ResponseMessage(ROLE_UPDATED)
   @LogActivity({ action: 'update:role', resource: 'role', includeBody: true })
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   async updateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateRoleDTO: UpdateRoleDTO,
@@ -77,7 +77,7 @@ export class RoleController {
   @ApiOperation({ summary: 'Delete role' })
   @ResponseMessage(ROLE_DELETED)
   @LogActivity({ action: 'delete:role', resource: 'role' })
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   async deleteRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
@@ -88,7 +88,7 @@ export class RoleController {
   @ApiOperation({ summary: 'Activate role' })
   @ResponseMessage(ROLE_ACTIVATED)
   @LogActivity({ action: 'activate:role', resource: 'role' })
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   async activateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
@@ -99,7 +99,7 @@ export class RoleController {
   @ApiOperation({ summary: 'Deactivate role' })
   @ResponseMessage(ROLE_DEACTIVATED)
   @LogActivity({ action: 'deactivate:role', resource: 'role' })
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   async deactivateRole(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {

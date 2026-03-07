@@ -24,7 +24,7 @@ export class PermissionsController {
   @Get('')
   @ApiOperation({ summary: 'Get permissions' })
   @ResponseMessage(PERMISSIONS_FETCHED)
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   async getPermissions(@Query() listFilterDto: ListFilterDTO) {
     return this.permissionService.getPermissions(listFilterDto);
   }
@@ -32,7 +32,7 @@ export class PermissionsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get permission' })
   @ResponseMessage(PERMISSIONS_FETCHED)
-  @RequirePermission('manage:school')
+  @RequirePermission('manage:schools')
   async getPermission(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {

@@ -37,7 +37,7 @@ export class SeedPermissionsAndRoles1772380800000 implements MigrationInterface 
         ('Read Media',            'read:media'),
         ('Send Message',          'send:message'),
         ('Publish Announcement',  'publish:announcement'),
-        ('Manage School',         'manage:school'),
+        ('Manage School',         'manage:schools'),
         ('Read Reports',          'read:reports')
       ON CONFLICT ("slug") DO NOTHING
     `);
@@ -150,7 +150,7 @@ export class SeedPermissionsAndRoles1772380800000 implements MigrationInterface 
         'manage:attendance', 'read:attendance',
         'upload:media', 'read:media',
         'send:message', 'publish:announcement',
-        'manage:school', 'read:reports'
+        'manage:schools', 'read:reports'
       )
     `);
   }
