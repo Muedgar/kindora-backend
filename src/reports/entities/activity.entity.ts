@@ -50,6 +50,7 @@ export class Activity extends AppBaseEntity {
    * Validated at the DTO layer with @IsEnum(EGradingType).
    */
   @Column({
+    name: 'grading_type',
     type: 'varchar',
     length: 20,
     nullable: true,
@@ -63,7 +64,7 @@ export class Activity extends AppBaseEntity {
    *   FREQUENCY → { maxFrequency: number }
    *   RUBRIC / YES_NO → null (no additional config needed)
    */
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ name: 'grading_config', type: 'jsonb', nullable: true })
   gradingConfig: GradingConfig;
 
   // ── Relations ──────────────────────────────────────────────────────────────
