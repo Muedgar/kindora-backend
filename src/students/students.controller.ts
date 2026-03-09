@@ -20,6 +20,7 @@ import {
   GUARDIAN_UPDATED,
   GUARDIANS_FETCHED,
   STUDENT_CREATED,
+  STUDENT_FETCHED,
   STUDENTS_FETCHED,
 } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
@@ -69,6 +70,19 @@ export class StudentsController {
     @GetSchoolContext() ctx: SchoolContext,
   ) {
     return this.studentsService.getStudents(listFilterDTO, ctx.school, currentBranch?.id);
+  }
+
+  @Get(':studentId')
+  @RequiresBranchAccess()
+  @RequirePermission('read:students')
+  @ApiOperation({ summary: 'Get a single student details' })
+  @ResponseMessage(STUDENT_FETCHED)
+  async getStudent(
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @CurrentBranch() currentBranch: SchoolBranch,
+    @GetSchoolContext() ctx: SchoolContext,
+  ) {
+    return this.studentsService.getStudentDetails(studentId, ctx.school, currentBranch?.id);
   }
 
   // ─── Guardian Endpoints ──────────────────────────────────────────────────

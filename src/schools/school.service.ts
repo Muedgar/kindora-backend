@@ -100,6 +100,19 @@ export class SchoolService {
     });
   }
 
+  async getBranchInSchool(
+    schoolId: string,
+    branchId: string,
+  ): Promise<SchoolBranch> {
+    const branch = await this.schoolBranchRepository.findOne({
+      where: { id: branchId, school: { id: schoolId } },
+      relations: ['rwandaVillage', 'school'],
+    });
+
+    if (!branch) throw new BadRequestException(SCHOOL_BRANCH_NOT_FOUND);
+    return branch;
+  }
+
   async createBranch(schoolId: string, dto: CreateBranchDto): Promise<SchoolBranch> {
     const school = await this.schoolRepository.findOne({ where: { id: schoolId } });
     if (!school) throw new BadRequestException(SCHOOL_NOT_FOUND);

@@ -111,6 +111,35 @@ export class StudentsService {
     return student;
   }
 
+  async getStudentDetails(
+    id: string,
+    school: School,
+    branchId?: string,
+  ): Promise<StudentSerializer> {
+    const student = await this.studentRepository.findOne({
+      where: {
+        id,
+        school: { pkid: school.pkid },
+        ...(branchId ? { branch: { id: branchId } } : {}),
+      },
+      relations: [
+        'guardians',
+        'guardians.parent',
+        'guardians.parent.user',
+        'classroom',
+        'classroom.students',
+        'branch',
+        'branch.school',
+      ],
+    });
+
+    if (!student) throw new NotFoundException(STUDENT_NOT_FOUND);
+
+    return plainToInstance(StudentSerializer, student, {
+      excludeExtraneousValues: true,
+    });
+  }
+
   // ─── Guardian Management ──────────────────────────────────────────────────
 
   async addGuardian(

@@ -390,6 +390,16 @@ export class UserService {
     return user;
   }
 
+  async getUserSerialized(id: string): Promise<UserSerializer> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(USER_NOT_FOUND);
+    }
+    return plainToInstance(UserSerializer, user, {
+      excludeExtraneousValues: true,
+    });
+  }
+
   async activateUser(id: string): Promise<UserSerializer> {
     const user = await this.getUser(id);
 

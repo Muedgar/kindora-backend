@@ -94,7 +94,7 @@ export class UserController {
   @ResponseMessage(USER_FETCHED)
   @UseGuards(JwtAuthGuard)
   async getUser(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
-    return this.userService.getUser(id);
+    return this.userService.getUserSerialized(id);
   }
 
   /**

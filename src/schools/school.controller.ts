@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -35,6 +36,17 @@ export class SchoolController {
   @ApiOperation({ summary: 'List all branches for a school' })
   async getSchoolBranches(@Param('id') schoolId: string) {
     return this.schoolService.getBranchesBySchool(schoolId);
+  }
+
+  @Get('schools/:id/branches/:bId')
+  @UseGuards(SchoolContextGuard, PermissionGuard)
+  @RequirePermission('manage:schools')
+  @ApiOperation({ summary: 'Get a single branch details for a school' })
+  async getSchoolBranch(
+    @Param('id', ParseUUIDPipe) schoolId: string,
+    @Param('bId', ParseUUIDPipe) branchId: string,
+  ) {
+    return this.schoolService.getBranchInSchool(schoolId, branchId);
   }
 
   @Post('schools/:id/branches')
