@@ -2,7 +2,7 @@
  * KindoraSeederService
  *
  * Seeds a freshly reset Kindora database with:
- *  1. Permissions  (19, action:resource slugs)
+ *  1. Permissions  (23, action:resource slugs)
  *  2. Roles        (4: SUPER_ADMIN, SCHOOL_ADMIN, TEACHER, PARENT)
  *  3. Location     (Province → District → Sector → Cell → Village for Kigali + Huye)
  *  4. Users        (5 test accounts — passwords hashed with bcrypt)
@@ -68,6 +68,12 @@ const P = {
   // Reports
   READ_REPORTS: 'read:reports',
   WRITE_REPORTS: 'write:reports',
+  // Activities
+  READ_ACTIVITY: 'read:activity',
+  WRITE_ACTIVITY: 'write:activity',
+  // Learning Areas
+  READ_LEARNING_AREA: 'read:learning-area',
+  WRITE_LEARNING_AREA: 'write:learning-area',
   // Check-in / Check-out
   READ_CHECKINOUT: 'read:checkinout',
   MANAGE_CHECKINOUT: 'manage:checkinout',
@@ -85,6 +91,8 @@ const ROLE_PERMISSIONS: Record<string, PermSlug[]> = {
     P.READ_CLASSROOMS, P.WRITE_CLASSROOMS, P.DELETE_CLASSROOMS, P.MANAGE_CLASSROOMS,
     P.READ_STUDENTS, P.WRITE_STUDENTS, P.DELETE_STUDENTS, P.MANAGE_STUDENTS,
     P.READ_REPORTS, P.WRITE_REPORTS,
+    P.READ_ACTIVITY, P.WRITE_ACTIVITY,
+    P.READ_LEARNING_AREA, P.WRITE_LEARNING_AREA,
     P.READ_CHECKINOUT, P.MANAGE_CHECKINOUT,
   ],
 
@@ -92,6 +100,8 @@ const ROLE_PERMISSIONS: Record<string, PermSlug[]> = {
     P.READ_CLASSROOMS,
     P.READ_STUDENTS, P.WRITE_STUDENTS,
     P.READ_REPORTS,
+    P.READ_ACTIVITY, P.WRITE_ACTIVITY,
+    P.READ_LEARNING_AREA, P.WRITE_LEARNING_AREA,
     P.READ_CHECKINOUT, P.MANAGE_CHECKINOUT,
   ],
 
@@ -190,6 +200,10 @@ private getSeedPlainPassword(): string {
       { name: 'Manage Students',   slug: P.MANAGE_STUDENTS },
       { name: 'Read Reports',      slug: P.READ_REPORTS },
       { name: 'Write Reports',     slug: P.WRITE_REPORTS },
+      { name: 'Read Activity',     slug: P.READ_ACTIVITY },
+      { name: 'Write Activity',    slug: P.WRITE_ACTIVITY },
+      { name: 'Read Learning Area',  slug: P.READ_LEARNING_AREA },
+      { name: 'Write Learning Area', slug: P.WRITE_LEARNING_AREA },
       { name: 'Read Check-In/Out',   slug: P.READ_CHECKINOUT },
       { name: 'Manage Check-In/Out', slug: P.MANAGE_CHECKINOUT },
     ];
@@ -353,21 +367,31 @@ private getSeedPlainPassword(): string {
       { firstName: 'Patrick', lastName: 'Nkurunziza', email: 'parent2.kgl@kindora.rw', userName: 'patrick.parent' },
     ];
 
+    const existingUsers = await this.userRepo.find({
+      where: { email: In(userDefs.map((u) => u.email)) },
+    });
+    const existingByEmail = new Map(existingUsers.map((u) => [u.email, u]));
+
     const saved = await this.userRepo.save(
-      userDefs.map((u) =>
-        this.userRepo.create({
+      userDefs.map((u) => {
+        const existing = existingByEmail.get(u.email);
+        if (existing) return existing;
+
+        return this.userRepo.create({
           ...u,
           password: passwordHash,
           status: true,
-          isDefaultPassword: true,   // signal to prompt password change on first login
+          isDefaultPassword: true, // signal to prompt password change on first login
           emailVerified: true,
           twoFactorAuthentication: false,
-        }),
-      ),
+        });
+      }),
     );
 
     const [superAdmin, schoolAdmin, teacher, parent1, parent2] = saved;
-    this.logger.log(`     → ${saved.length} users created.`);
+    const createdCount = saved.filter((u) => !existingByEmail.has(u.email)).length;
+    const reusedCount = saved.length - createdCount;
+    this.logger.log(`     → ${createdCount} users created, ${reusedCount} reused.`);
     return { superAdmin, schoolAdmin, teacher, parent1, parent2 };
   }
 
@@ -384,48 +408,94 @@ private getSeedPlainPassword(): string {
   }> {
     this.logger.log('  [5/12] Seeding schools…');
 
-    const [kigali, huye] = await this.schoolRepo.save([
-      this.schoolRepo.create({
+    const schoolDefs = [
+      {
+        key: 'kigali' as const,
         name: 'Kindora Kigali',
-        countries: [ECountry.RWANDA],
         phoneNumber: '+250788000001',
         enrollmentCapacity: '200',
-        createdBy,
-      }),
-      this.schoolRepo.create({
+      },
+      {
+        key: 'huye' as const,
         name: 'Kindora Huye',
-        countries: [ECountry.RWANDA],
         phoneNumber: '+250788000002',
         enrollmentCapacity: '150',
-        createdBy,
-      }),
-    ]);
+      },
+    ];
 
-    const [kigaliBranch, huyeBranch] = await this.schoolBranchRepo.save([
-      this.schoolBranchRepo.create({
-        name: 'Main Campus - Kigali',
+    const existingSchools = await this.schoolRepo.find({
+      where: { name: In(schoolDefs.map((d) => d.name)) },
+    });
+    const schoolByName = new Map(existingSchools.map((s) => [s.name, s]));
+
+    const schools = {} as { kigali: School; huye: School };
+    let createdSchools = 0;
+    for (const def of schoolDefs) {
+      let school = schoolByName.get(def.name);
+      if (!school) {
+        school = await this.schoolRepo.save(
+          this.schoolRepo.create({
+            name: def.name,
+            countries: [ECountry.RWANDA],
+            phoneNumber: def.phoneNumber,
+            enrollmentCapacity: def.enrollmentCapacity,
+            createdBy,
+          }),
+        );
+        createdSchools++;
+      }
+      schools[def.key] = school;
+    }
+
+    const branchDefs = [
+      {
+        key: 'kigali' as const,
         code: 101,
-        school: kigali,
-        country: ECountry.RWANDA,
-        rwandaVillage: locations.kigaliVillage,
+        name: 'Main Campus - Kigali',
+        school: schools.kigali,
+        village: locations.kigaliVillage,
         address: 'Nyarugenge, Kigali',
-        isMainBranch: true,
-      }),
-      this.schoolBranchRepo.create({
-        name: 'Main Campus - Huye',
+      },
+      {
+        key: 'huye' as const,
         code: 201,
-        school: huye,
-        country: ECountry.RWANDA,
-        rwandaVillage: locations.huyeVillage,
+        name: 'Main Campus - Huye',
+        school: schools.huye,
+        village: locations.huyeVillage,
         address: 'Ngoma, Huye',
-        isMainBranch: true,
-      }),
-    ]);
+      },
+    ];
 
-    this.logger.log('     → 2 schools + 2 branches created.');
+    const branches = {} as { kigali: SchoolBranch; huye: SchoolBranch };
+    let createdBranches = 0;
+    for (const def of branchDefs) {
+      let branch = await this.schoolBranchRepo.findOne({
+        where: { school: { pkid: def.school.pkid }, code: def.code },
+        relations: ['school'],
+      });
+      if (!branch) {
+        branch = await this.schoolBranchRepo.save(
+          this.schoolBranchRepo.create({
+            name: def.name,
+            code: def.code,
+            school: def.school,
+            country: ECountry.RWANDA,
+            rwandaVillage: def.village,
+            address: def.address,
+            isMainBranch: true,
+          }),
+        );
+        createdBranches++;
+      }
+      branches[def.key] = branch;
+    }
+
+    this.logger.log(
+      `     → ${createdSchools} schools created, ${createdBranches} branches created.`,
+    );
     return {
-      schools: { kigali, huye },
-      branches: { kigali: kigaliBranch, huye: huyeBranch },
+      schools,
+      branches,
     };
   }
 
@@ -470,24 +540,42 @@ private getSeedPlainPassword(): string {
     ];
 
     for (const spec of specs) {
-      const member = this.memberRepo.create({
-        member:     spec.user,
-        school:     spec.school,
-        defaultBranch: spec.defaultBranch,
-        status:     ESchoolMemberStatus.ACTIVE,
-        isDefault:  spec.isDefault,
-        acceptedAt: now,
+      let savedMember = await this.memberRepo.findOne({
+        where: {
+          member: { pkid: spec.user.pkid },
+          school: { pkid: spec.school.pkid },
+        },
+        relations: ['member', 'school'],
       });
-      const savedMember = await this.memberRepo.save(member);
+      if (!savedMember) {
+        const member = this.memberRepo.create({
+          member: spec.user,
+          school: spec.school,
+          defaultBranch: spec.defaultBranch,
+          status: ESchoolMemberStatus.ACTIVE,
+          isDefault: spec.isDefault,
+          acceptedAt: now,
+        });
+        savedMember = await this.memberRepo.save(member);
+      }
 
-      const memberRole = this.memberRoleRepo.create({
-        schoolMember: savedMember,
-        role: spec.role,
+      const existingMemberRole = await this.memberRoleRepo.findOne({
+        where: {
+          schoolMember: { pkid: savedMember.pkid },
+          role: { pkid: spec.role.pkid },
+        },
+        relations: ['schoolMember', 'role'],
       });
-      await this.memberRoleRepo.save(memberRole);
+      if (!existingMemberRole) {
+        const memberRole = this.memberRoleRepo.create({
+          schoolMember: savedMember,
+          role: spec.role,
+        });
+        await this.memberRoleRepo.save(memberRole);
+      }
     }
 
-    this.logger.log('     → 6 school memberships + role assignments created.');
+    this.logger.log('     → school memberships + role assignments ensured.');
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -501,21 +589,35 @@ private getSeedPlainPassword(): string {
   ): Promise<Staff> {
     this.logger.log('  [7/12] Seeding staff profile…');
 
-    const staff = this.staffRepo.create({
-      user:     teacher,
-      position: 'Lead Teacher',
-      school,
+    let staff = await this.staffRepo.findOne({
+      where: { user: { pkid: teacher.pkid } },
+      relations: ['user', 'school'],
     });
-    const saved = await this.staffRepo.save(staff);
-    await this.staffBranchRepo.save(
-      this.staffBranchRepo.create({
-        staff: saved,
-        branch,
-        isPrimary: true,
-      }),
-    );
-    this.logger.log('     → 1 staff profile created.');
-    return saved;
+    if (!staff) {
+      staff = await this.staffRepo.save(
+        this.staffRepo.create({
+          user: teacher,
+          position: 'Lead Teacher',
+          school,
+        }),
+      );
+    }
+
+    const existingStaffBranch = await this.staffBranchRepo.findOne({
+      where: { staff: { pkid: staff.pkid }, branch: { pkid: branch.pkid } },
+      relations: ['staff', 'branch'],
+    });
+    if (!existingStaffBranch) {
+      await this.staffBranchRepo.save(
+        this.staffBranchRepo.create({
+          staff,
+          branch,
+          isPrimary: true,
+        }),
+      );
+    }
+    this.logger.log('     → staff profile ensured.');
+    return staff;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -528,24 +630,47 @@ private getSeedPlainPassword(): string {
   ): Promise<{ parent1: Parent; parent2: Parent }> {
     this.logger.log('  [8/12] Seeding parent profiles…');
 
-    const [parent1, parent2] = await this.parentRepo.save([
-      this.parentRepo.create({
-        user:        users.parent1,
-        occupation:  'Nurse',
+    const parentDefs = [
+      {
+        key: 'parent1' as const,
+        user: users.parent1,
+        occupation: 'Nurse',
         phoneNumber: '+250788111001',
-        address:     'Kigali, Nyarugenge',
-        school,
-      }),
-      this.parentRepo.create({
-        user:        users.parent2,
-        occupation:  'Engineer',
+        address: 'Kigali, Nyarugenge',
+      },
+      {
+        key: 'parent2' as const,
+        user: users.parent2,
+        occupation: 'Engineer',
         phoneNumber: '+250788111002',
-        address:     'Kigali, Kicukiro',
-        school,
-      }),
-    ]);
+        address: 'Kigali, Kicukiro',
+      },
+    ];
 
-    this.logger.log('     → 2 parent profiles created.');
+    const result = {} as { parent1: Parent; parent2: Parent };
+    let created = 0;
+    for (const def of parentDefs) {
+      let parent = await this.parentRepo.findOne({
+        where: { user: { pkid: def.user.pkid } },
+        relations: ['user', 'school'],
+      });
+      if (!parent) {
+        parent = await this.parentRepo.save(
+          this.parentRepo.create({
+            user: def.user,
+            occupation: def.occupation,
+            phoneNumber: def.phoneNumber,
+            address: def.address,
+            school,
+          }),
+        );
+        created++;
+      }
+      result[def.key] = parent;
+    }
+
+    const { parent1, parent2 } = result;
+    this.logger.log(`     → ${created} parent profiles created, ${parentDefs.length - created} reused.`);
     return { parent1, parent2 };
   }
 
@@ -559,16 +684,26 @@ private getSeedPlainPassword(): string {
   ): Promise<Classroom> {
     this.logger.log('  [9/12] Seeding classroom…');
 
-    const classroom = this.classroomRepo.create({
-      name:      'Nursery A',
-      ageGroup:  '2–3 years',
-      capacity:  20,
-      branch,
-      createdBy,
+    let classroom = await this.classroomRepo.findOne({
+      where: { branch: { pkid: branch.pkid }, name: 'Nursery A' },
+      relations: ['branch'],
     });
-    const saved = await this.classroomRepo.save(classroom);
-    this.logger.log('     → Classroom "Nursery A" created.');
-    return saved;
+    if (!classroom) {
+      classroom = await this.classroomRepo.save(
+        this.classroomRepo.create({
+          name: 'Nursery A',
+          ageGroup: '2-3 years',
+          capacity: 20,
+          branch,
+          createdBy,
+        }),
+      );
+      this.logger.log('     → Classroom "Nursery A" created.');
+      return classroom;
+    }
+
+    this.logger.log('     → Classroom "Nursery A" reused.');
+    return classroom;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -581,26 +716,48 @@ private getSeedPlainPassword(): string {
   ): Promise<{ alice: Student; bob: Student }> {
     this.logger.log('  [10/12] Seeding students…');
 
-    const [alice, bob] = await this.studentRepo.save([
-      this.studentRepo.create({
-        fullName:    'Alice Uwimana',
+    const studentDefs = [
+      {
+        key: 'alice' as const,
+        fullName: 'Alice Uwimana',
         dateOfBirth: new Date('2021-03-15'),
-        gender:      'Female',
-        branch,
-        classroom,
-        notes:       'No known allergies.',
-      }),
-      this.studentRepo.create({
-        fullName:    'Bob Nkurunziza',
+        gender: 'Female',
+        notes: 'No known allergies.',
+      },
+      {
+        key: 'bob' as const,
+        fullName: 'Bob Nkurunziza',
         dateOfBirth: new Date('2020-11-22'),
-        gender:      'Male',
-        branch,
-        classroom,
-        notes:       'Mild peanut allergy — EpiPen in the office.',
-      }),
-    ]);
+        gender: 'Male',
+        notes: 'Mild peanut allergy - EpiPen in the office.',
+      },
+    ];
 
-    this.logger.log('     → 2 students created.');
+    const result = {} as { alice: Student; bob: Student };
+    let created = 0;
+    for (const def of studentDefs) {
+      let student = await this.studentRepo.findOne({
+        where: { branch: { pkid: branch.pkid }, fullName: def.fullName },
+        relations: ['branch', 'classroom'],
+      });
+      if (!student) {
+        student = await this.studentRepo.save(
+          this.studentRepo.create({
+            fullName: def.fullName,
+            dateOfBirth: def.dateOfBirth,
+            gender: def.gender,
+            branch,
+            classroom,
+            notes: def.notes,
+          }),
+        );
+        created++;
+      }
+      result[def.key] = student;
+    }
+
+    const { alice, bob } = result;
+    this.logger.log(`     → ${created} students created, ${studentDefs.length - created} reused.`);
     return { alice, bob };
   }
 
@@ -614,24 +771,43 @@ private getSeedPlainPassword(): string {
   ): Promise<void> {
     this.logger.log('  [11/12] Seeding guardian links…');
 
-    await this.guardianRepo.save([
-      this.guardianRepo.create({
-        student:          students.alice,
-        parent:           parents.parent1,
-        relationship:     EGuardianRelationship.MOTHER,
-        canPickup:        true,
-        isEmergencyContact: true,
-      }),
-      this.guardianRepo.create({
-        student:          students.bob,
-        parent:           parents.parent2,
-        relationship:     EGuardianRelationship.FATHER,
-        canPickup:        true,
-        isEmergencyContact: true,
-      }),
-    ]);
+    const links = [
+      {
+        student: students.alice,
+        parent: parents.parent1,
+        relationship: EGuardianRelationship.MOTHER,
+      },
+      {
+        student: students.bob,
+        parent: parents.parent2,
+        relationship: EGuardianRelationship.FATHER,
+      },
+    ];
 
-    this.logger.log('     → 2 guardian links created.');
+    let created = 0;
+    for (const link of links) {
+      const existing = await this.guardianRepo.findOne({
+        where: {
+          student: { pkid: link.student.pkid },
+          parent: { pkid: link.parent.pkid },
+        },
+        relations: ['student', 'parent'],
+      });
+      if (existing) continue;
+
+      await this.guardianRepo.save(
+        this.guardianRepo.create({
+          student: link.student,
+          parent: link.parent,
+          relationship: link.relationship,
+          canPickup: true,
+          isEmergencyContact: true,
+        }),
+      );
+      created++;
+    }
+
+    this.logger.log(`     → ${created} guardian links created, ${links.length - created} reused.`);
   }
 
   // ═══════════════════════════════════════════════════════════════════════

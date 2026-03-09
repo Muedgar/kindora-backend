@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, Repository } from 'typeorm';
 import { UserService } from 'src/users/users.service';
@@ -98,5 +98,28 @@ export class ClassroomsService {
     }
 
     return classroom;
+  }
+
+  async getClassroomDetails(
+    id: string,
+    school: School,
+    branchId?: string,
+  ): Promise<ClassroomSerializer> {
+    const classroom = await this.classroomRepository.findOne({
+      where: {
+        id,
+        school: { pkid: school.pkid },
+        ...(branchId ? { branch: { id: branchId } } : {}),
+      },
+      relations: ['createdBy', 'students', 'branch', 'branch.school'],
+    });
+
+    if (!classroom) {
+      throw new NotFoundException(CLASSROOM_NOT_FOUND);
+    }
+
+    return plainToInstance(ClassroomSerializer, classroom, {
+      excludeExtraneousValues: true,
+    });
   }
 }

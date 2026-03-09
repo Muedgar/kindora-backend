@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage, LogActivity } from 'src/common/decorators';
-import { CLASSROOM_CREATED, CLASSROOMS_FETCHED } from './messages';
+import { CLASSROOM_CREATED, CLASSROOM_FETCHED, CLASSROOMS_FETCHED } from './messages';
 import { ListFilterDTO } from 'src/common/dtos';
 import { ClassroomsService } from './classrooms.service';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
@@ -45,5 +54,18 @@ export class ClassroomsController {
     @GetSchoolContext() ctx: SchoolContext,
   ) {
     return this.classroomsService.getClassrooms(listFilterDTO, ctx.school, currentBranch?.id);
+  }
+
+  @Get(':id')
+  @RequiresBranchAccess()
+  @RequirePermission('read:classrooms')
+  @ApiOperation({ summary: 'Get a single classroom details' })
+  @ResponseMessage(CLASSROOM_FETCHED)
+  async getClassroom(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentBranch() currentBranch: SchoolBranch,
+    @GetSchoolContext() ctx: SchoolContext,
+  ) {
+    return this.classroomsService.getClassroomDetails(id, ctx.school, currentBranch?.id);
   }
 }

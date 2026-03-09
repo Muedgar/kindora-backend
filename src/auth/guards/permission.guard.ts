@@ -42,6 +42,9 @@ export class PermissionGuard implements CanActivate {
 
     const permissions = request.schoolContext?.permissions ?? [];
 
+    console.log("required permissions:  ", required)
+    console.log("user permissions: ", permissions)
+
     const hasAll = required.every((slug) => permissions.includes(slug));
 
     if (!hasAll) throw new ForbiddenException(INSUFFICIENT_PERMISSIONS);
