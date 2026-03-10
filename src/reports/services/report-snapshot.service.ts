@@ -89,6 +89,8 @@ export class ReportSnapshotService {
     private readonly parentRepository: Repository<Parent>,
     @InjectRepository(StudentGuardian)
     private readonly guardianRepository: Repository<StudentGuardian>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly aggregationService: AggregationService,
     private readonly eventEmitter: EventEmitter2,
     private readonly dataSource: DataSource,
@@ -101,6 +103,8 @@ export class ReportSnapshotService {
     school: School,
     creator: User,
   ): Promise<ReportSnapshotSerializer> {
+    const persistedCreator = await this.resolvePersistedUser(creator);
+
     const student = await this.studentRepository.findOne({
       where: { id: dto.studentId, school: { pkid: school.pkid } },
     });
@@ -112,7 +116,7 @@ export class ReportSnapshotService {
       dto.type,
       dto.periodStart,
       dto.periodEnd,
-      creator,
+      persistedCreator,
     );
   }
 
@@ -121,6 +125,8 @@ export class ReportSnapshotService {
     school: School,
     creator: User,
   ): Promise<BulkSnapshotResultSerializer> {
+    const persistedCreator = await this.resolvePersistedUser(creator);
+
     const students = await this.studentRepository.find({
       where: { school: { pkid: school.pkid } },
     });
@@ -137,7 +143,7 @@ export class ReportSnapshotService {
           dto.type,
           dto.periodStart,
           dto.periodEnd,
-          creator,
+          persistedCreator,
         );
         generated++;
       } catch (err: unknown) {
@@ -708,6 +714,8 @@ export class ReportSnapshotService {
     periodEnd: string,
     creator: User,
   ): Promise<ReportSnapshotSerializer> {
+    const persistedCreator = await this.resolvePersistedUser(creator);
+
     const existing = await this.snapshotRepository.findOne({
       where: {
         student: { pkid: student.pkid },
@@ -763,7 +771,7 @@ export class ReportSnapshotService {
         overallScore: overallScore ?? undefined,
         trend: trend ?? undefined,
         status: ESnapshotStatus.DRAFT,
-        createdBy: creator,
+        createdBy: persistedCreator,
       });
       const savedSnapshot = await snapRepo.save(snapshot);
 
@@ -785,6 +793,31 @@ export class ReportSnapshotService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * `@GetUser()` currently omits pkid from JWT auth context, but relations
+   * persist via numeric pkid FK. Resolve and validate a persisted user here
+   * to guarantee created_by_id / updated_by_id can be written safely.
+   */
+  private async resolvePersistedUser(user: User): Promise<User> {
+    if (Number.isInteger(user?.pkid) && user.pkid > 0) return user;
+
+    if (user?.id) {
+      const byId = await this.userRepository.findOne({ where: { id: user.id } });
+      if (byId) return byId;
+    }
+
+    if (user?.email) {
+      const byEmail = await this.userRepository.findOne({
+        where: { email: user.email },
+      });
+      if (byEmail) return byEmail;
+    }
+
+    throw new BadRequestException(
+      'Could not resolve snapshot creator user. Please re-authenticate and try again.',
+    );
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────

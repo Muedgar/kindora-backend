@@ -13,6 +13,7 @@ import {
 import { Student } from 'src/students/entities/student.entity';
 import { StudentGuardian } from 'src/students/entities/student-guardian.entity';
 import { Parent } from 'src/parents/entities/parent.entity';
+import { User } from 'src/users/entities';
 
 // Controllers
 import { GradingLevelController } from './controllers/grading-level.controller';
@@ -51,6 +52,7 @@ import { CommonModule } from 'src/common/common.module';
       Student,
       Parent,
       StudentGuardian,
+      User,
       // Phase 3
       ReportSnapshot,
       SnapshotActivityItem,
