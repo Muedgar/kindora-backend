@@ -29,8 +29,7 @@ import { EReportType } from '../enums/snapshot.enum';
  *     SchoolsModule into ReportsModule circularly.
  *   • The "system user" for scheduled generation: we look up a user with
  *     the SYSTEM_USER_EMAIL env var (defaults to 'system@kindora.app').
- *     If not found, a minimal in-memory stub is used (no FK violation
- *     because created_by_id is NOT NULL — ensure the user exists in prod).
+ *     If not found, generation is skipped and a clear error is logged.
  *   • Per-school errors are caught and logged — one failing school does
  *     not abort the rest.
  */
@@ -88,7 +87,15 @@ export class ReportSchedulerService {
       .getRepository(School)
       .find();
 
-    const systemUser = await this.resolveSystemUser();
+    let systemUser: User;
+    try {
+      systemUser = await this.resolveSystemUser();
+    } catch (err: unknown) {
+      this.logger.error(
+        err instanceof Error ? err.message : 'Failed to resolve system user.',
+      );
+      return { schoolsProcessed: 0, schoolsFailed: schools.length };
+    }
     let schoolsProcessed = 0;
     let schoolsFailed = 0;
 
@@ -162,13 +169,8 @@ export class ReportSchedulerService {
 
     if (user) return user;
 
-    // Stub — works in dev/test; production should always have the user seeded.
-    this.logger.warn(
-      `System user "${email}" not found. Using stub — ensure the user is seeded in production.`,
+    throw new Error(
+      `System user "${email}" not found. Seed this user or set SYSTEM_USER_EMAIL to an existing account.`,
     );
-    const stub = new User();
-    stub.pkid = 0;
-    stub.id = '00000000-0000-0000-0000-000000000000';
-    return stub;
   }
 }

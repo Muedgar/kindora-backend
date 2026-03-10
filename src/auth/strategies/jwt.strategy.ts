@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<Omit<User, 'password' | 'pkid'>> {
+  async validate(payload: JwtPayload): Promise<Omit<User, 'password'>> {
     // Look up by ID (stable) rather than email (can change in future).
     const user = await this.userRepository.findOne({ where: { id: payload.id } });
 
@@ -38,6 +38,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException(TOKEN_REVOKED);
     }
 
-    return omit(user, ['password', 'pkid']) as Omit<User, 'password' | 'pkid'>;
+    return omit(user, ['password']) as Omit<User, 'password'>;
   }
 }
